@@ -1,0 +1,137 @@
+<?php
+include 'db_connection.php';
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $category = $_POST['category'] ?? '';
+    $urgency  = $_POST['urgency'] ?? '';
+    $location = $_POST['location'] ?? '';
+    $sector   = $_POST['sector'] ?? '';
+    $details  = $_POST['details'] ?? '';
+    $name     = $_POST['name'] ?? '';
+    $contact  = $_POST['contact'] ?? '';
+    $ip       = $_SERVER['REMOTE_ADDR'];
+    $time     = date('Y-m-d H:i:s');
+
+    $stmt = $conn->prepare("INSERT INTO reports (time, category, urgency, location, sector, details, name, contact, ip) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt->bind_param("sssssssss", $time, $category, $urgency, $location, $sector, $details, $name, $contact, $ip);
+
+    if ($stmt->execute()) {
+        $success = "Merci beaucoup ! Votre rapport a été envoyé. Nous allons le suivre rapidement.";
+    } else {
+        $success = "Une erreur est survenue : " . $stmt->error;
+    }
+    $stmt->close();
+}
+
+$conn->close();
+?>
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clean Kigali • Envoyer un Rapport</title>
+<style>
+body { font-family: Arial,sans-serif; background:#f2f2f2; margin:0; padding:0; }
+.container { max-width:600px; margin:30px auto; padding:20px; background:white; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); }
+header .logo { font-size:24px; font-weight:bold; }
+header .tagline { font-size:14px; color:#666; margin-bottom:20px; }
+.field { margin-bottom:15px; }
+.field label { display:block; margin-bottom:5px; }
+.field input, .field select, .field textarea { width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; }
+textarea { resize:vertical; }
+.success { background:#d4edda; color:#155724; padding:10px; border-radius:4px; margin-bottom:15px; }
+.buttons { display:flex; gap:10px; }
+button { padding:10px 15px; border:none; border-radius:4px; cursor:pointer; }
+.btn-primary { background:#10b981; color:white; }
+.btn-secondary { background:#6b7280; color:white; }
+  .Btn-1,
+    .Btn-2 {
+        background-color: #10b981;
+        margin-left: 10px;
+        cursor: pointer;
+        margin-bottom: 20px;
+        transition: 2s;
+    }
+
+    .Btn-1:hover {
+        transform: scale(1.1);
+        transition: 2s;
+    }
+    .Btn-2:hover {
+        transform: scale(1.1);
+    }
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+    <div class="logo">Clean Kigali</div>
+    <p class="tagline">Aidons à garder Kigali propre — envoyez un rapport</p>
+    <p>Choisie ta langue prefere</p>
+   <a href="indexe.php"><button class="Btn-1">English</button></a> 
+    <a href="index.php"><button class="Btn-2">Kinyarwanda</button></a>
+</header>
+
+<?php if (!empty($success)): ?>
+<div class="success"><?= $success ?></div>
+<?php endif; ?>
+
+<form method="POST">
+    <div class="field">
+        <label>Type de problème *</label>
+        <select name="category" required>
+            <option value="" disabled <?= empty($_POST['category']) ? 'selected' : '' ?>>Choisissez une option</option>
+            <option value="full-bin" <?= ($_POST['category']??'')=='full-bin'?'selected':'' ?>>Poubelle pleine</option>
+            <option value="blocked-drain" <?= ($_POST['category']??'')=='blocked-drain'?'selected':'' ?>>Caniveau bouché</option>
+            <option value="illegal-dumping" <?= ($_POST['category']??'')=='illegal-dumping'?'selected':'' ?>>Dépôt illégal de déchets</option>
+            <option value="litter" <?= ($_POST['category']??'')=='litter'?'selected':'' ?>>Déchets jetés dans un lieu inapproprié</option>
+            <option value="other" <?= ($_POST['category']??'')=='other'?'selected':'' ?>>Autre problème</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Niveau d'urgence *</label>
+        <select name="urgency" required>
+            <option value="" disabled <?= empty($_POST['urgency'])?'selected':'' ?>>Choisissez un niveau</option>
+            <option value="low" <?= ($_POST['urgency']??'')=='low'?'selected':'' ?>>Faible</option>
+            <option value="medium" <?= ($_POST['urgency']??'')=='medium'?'selected':'' ?>>Moyenne</option>
+            <option value="high" <?= ($_POST['urgency']??'')=='high'?'selected':'' ?>>Très urgent</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Localisation exacte *</label>
+        <input type="text" name="location" value="<?= htmlspecialchars($_POST['location']??'') ?>" placeholder="Ex : Devant CHUK, ou Gare de Nyabugogo" required>
+    </div>
+
+    <div class="field">
+        <label>District → Secteur (optionnel)</label>
+        <input type="text" name="sector" value="<?= htmlspecialchars($_POST['sector']??'') ?>" placeholder="Ex : Gasabo → Remera">
+    </div>
+
+    <div class="field">
+        <label>Description (optionnel)</label>
+        <textarea name="details"><?= htmlspecialchars($_POST['details']??'') ?></textarea>
+    </div>
+
+    <div class="field">
+        <label>Votre nom (optionnel)</label>
+        <input type="text" name="name" value="<?= htmlspecialchars($_POST['name']??'') ?>">
+    </div>
+
+    <div class="field">
+        <label>Téléphone ou Email (optionnel)</label>
+        <input type="text" name="contact" value="<?= htmlspecialchars($_POST['contact']??'') ?>">
+    </div>
+
+    <div class="buttons">
+        <button type="submit" class="btn-primary">Envoyer le Rapport</button>
+        <button type="reset" class="btn-secondary">Effacer tout</button>
+    </div>
+</form>
+
+<footer style="text-align:center; margin-top:20px; color:#666;">Fait pour la Ville de Kigali • Pur PHP</footer>
+</div>
+</body>
+</html>
