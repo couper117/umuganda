@@ -1,6 +1,8 @@
 <?php
 include 'db_connection.php';
 
+$success = ''; // initialize
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = $_POST['category'] ?? '';
     $urgency  = $_POST['urgency'] ?? '';
@@ -12,21 +14,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $ip       = $_SERVER['REMOTE_ADDR'];
     $time     = date('Y-m-d H:i:s');
 
-    $stmt = $conn->prepare(
-        "INSERT INTO reports (time, category, urgency, location, sector, details, name, contact, ip)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
-    );
-    $stmt->bind_param("sssssssss", $time, $category, $urgency, $location, $sector, $details, $name, $contact, $ip);
-
-    if ($stmt->execute()) {
-        $success = "Thank you! Your report has been submitted and will be reviewed shortly.";
+    if (empty($category) || empty($urgency) || empty($location)) {
+        $success = "Please fill in all required fields.";
     } else {
-        $success = "An error occurred: " . $stmt->error;
-    }
-    $stmt->close();
-}
+        $stmt = $conn->prepare(
+            "INSERT INTO reports (time, category, urgency, location, sector, details, name, contact, ip)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)"
+        );
+        $stmt->bind_param("sssssssss", $time, $category, $urgency, $location, $sector, $details, $name, $contact, $ip);
 
-$conn->close();
+        if ($stmt->execute()) {
+            $success = "Thank you! Your report has been submitted and will be reviewed shortly.";
+        } else {
+            $success = "An error occurred: " . $stmt->error;
+        }
+
+        $stmt->close();
+    }
+
+    $conn->close();
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -147,7 +154,7 @@ $conn->close();
 </header>
 
 <?php if (!empty($success)): ?>
-    <div class="success"><?= $success ?></div>
+    <div class="success"><?= htmlspecialchars($success) ?></div>
 <?php endif; ?>
 
 <form method="POST">
@@ -203,6 +210,13 @@ $conn->close();
         <button type="reset" class="btn-secondary">Clear All</button>
     </div>
 </form>
+
+<div class="info">
+    <p>
+        This umuganda systems helps to people to suggest locations that need cleaning in Kigali.<br>
+        Reports are reviewed by city officials and cleaning teams to ensure a cleaner environment for all residents.
+    </p>
+</div>
 
 <footer style="text-align:center; margin-top:20px; color:#666;">
     Created for the City of Kigali • Pure PHP
