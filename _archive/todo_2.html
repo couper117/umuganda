@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Todo App</title>
+    <style>
+        body {
+            background-color: white;
+            font-family: Arial, sans-serif;
+        }
+
+        .todo {
+            border-radius: 20px;
+            background-color: rgb(33, 72, 100);
+            width: fit-content;
+            padding: 100px;
+            margin: 100px auto;
+            text-align: center;
+            border-color: aqua;
+        }
+
+        input, button {
+            padding: 10px;
+            border-radius: 10px;
+            margin-top: 10px;
+            width: 100%;
+        }
+        button{
+            background-color: aqua;
+        }
+
+        ul {
+            margin-top: 15px;
+            padding: 0;
+        }
+
+        li {
+            list-style: none;
+            background: whitesmoke;
+            margin: 5px 0;
+            padding: 8px 200px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .delete {
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="todo">
+    <h1>Todo App</h1>
+
+    <input type="text" id="todoinput" placeholder="Enter task">
+    <br>
+    <button id="button">ADD</button>
+
+    <ul id="todolist"></ul>
+</div>
+
+<script>
+    const todoInput = document.querySelector('#todoinput');
+    const todolist = document.querySelector('#todolist');
+    const addbutton = document.querySelector('#button');
+
+    const todos = [];
+
+    addbutton.addEventListener("click", () => {
+        const value = todoInput.value.trim();
+
+        if (value === "") {
+            alert("Input is empty!");
+            return;
+        }
+
+        todos.push(value);
+        todoInput.value = "";
+        render();
+    });
+
+    function render() {
+        const todohtml = todos.map((todo, index) => {
+            return `
+                <li>
+                    ${todo}
+                    <span class="delete" onclick="removeTodo(${index})">❌</span>
+                </li>
+            `;
+        });
+
+        todolist.innerHTML = todohtml.join("");
+    }
+
+    function removeTodo(index) {
+        todos.splice(index, 1);
+        render();
+    }
+</script>
+
+</body>
+</html>

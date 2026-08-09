@@ -1,0 +1,72 @@
+# Clean Kigali — Apache hardening
+#
+# Note: this file only takes effect if AllowOverride is enabled for the
+# document root. On stock XAMPP it is (AllowOverride All); verify on your
+# production host, because several protections below depend on it.
+
+# --- Do not list directory contents ----------------------------------------
+Options -Indexes
+
+# --- Block direct web access to server-side-only files ---------------------
+# config.local.php holds credentials; lib/ holds the auth and security code;
+# neither is ever meant to be requested directly.
+<FilesMatch "^(config\.local\.php|config\.php)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# SQL dumps, logs, docs, backups and editor leftovers.
+<FilesMatch "\.(sql|log|md|docx|bak|ini|sh|swp|dist|example)$">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# Dotfiles (.htaccess, .env, .git*).
+<FilesMatch "^\.">
+    <IfModule mod_authz_core.c>
+        Require all denied
+    </IfModule>
+    <IfModule !mod_authz_core.c>
+        Order allow,deny
+        Deny from all
+    </IfModule>
+</FilesMatch>
+
+# --- Security response headers ---------------------------------------------
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "DENY"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always set Permissions-Policy "geolocation=(), microphone=(), camera=()"
+
+    # The admin dashboard loads Google Fonts; everything else is same-origin.
+    # 'unsafe-inline' is required by the inline style attributes currently used
+    # throughout the markup — remove it once those are moved into the stylesheets.
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self'; form-action 'self'; frame-ancestors 'none'; base-uri 'self'; object-src 'none'"
+
+    # Uncomment once the site is served over HTTPS only.
+    # Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    # Do not advertise the PHP version.
+    Header always unset X-Powered-By
+</IfModule>
+
+# --- Keep PHP internals out of responses -----------------------------------
+<IfModule mod_php.c>
+    php_flag display_errors Off
+    php_flag log_errors On
+    php_value expose_php Off
+</IfModule>
+
+# --- Default document ------------------------------------------------------
+DirectoryIndex index.php

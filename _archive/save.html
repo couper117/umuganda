@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<style>
+    h1{
+        border: 1px solid;
+        border-radius: 10px;
+        font-size: 20px;
+        border: none;
+        background-color: beige;
+        color: black;
+        border-bottom: 2px;
+        padding: 20px;
+        cursor: pointer;
+        margin-left: 200px;
+        margin-top: 100px;
+        width: fit-content;
+    }
+    form{
+        border: 2px solid;
+        border-radius: 20px;
+        padding: 50px 20px;
+        margin-left: 200px;
+        margin-top: 200px;
+        border: none;
+        background-color: whitesmoke;
+        color: black;
+        font-size: 30px;
+        font-family: 'Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif;
+        width: fit-content;
+    }
+    .div form input{
+        padding: 20px;
+        border-radius: 20px;
+        background-color: white;
+
+    }
+    .div form button {
+        width: 100%;
+        color: black;
+        background-color: green;
+        border: solid;
+        border:none;
+        border-radius: 20px;
+        font-family: Arial, Helvetica, sans-serif;
+        padding: 20px;
+        border-bottom: 2px;
+    }
+    .div form button:hover{
+        transform: translateY(2);
+        transform: scale(0.9);
+    }
+    .navbar{
+        border: 1px solid;
+        border-radius: 5px;
+        margin-top: 20px;
+        padding: 5px;
+        color: white;
+        background-color: green;
+        text-decoration: none;
+        gap: 100px;
+    }
+    .navitems{
+        text-decoration: none;
+        font-size: 20px;
+        gap: 100px;
+        color: black;
+        justify-content: center;
+        align-items: center;
+        display: flex;
+    }
+    
+</style>
+<body>
+    <div class="navbar">
+        <a href="#" class="navitems">Home</a>
+        <a href="#" class="navitems">About us</a>
+        <a href="#" class="navitems">contact us</a>
+    </div>
+    <div class="div">
+        <h1>This is my portfolio.</h1>
+        <form>
+            <label>Full Name :</label><br><br>
+            <input type="text" placeholder="Kamanzi John" required><br><br>
+            <label>Which school do you to? :</label><br><br>
+            <input type="text" placeholder="Faith Brilliant Stars school" required><br><br>
+            <label>How old are you? :</label><br><br>
+            <input type="text" placeholder="I am 12 years old"><br><br> 
+            <label>What class are you? :</label><br><br>
+            <input type="text" placeholder="Primary 6" required><br><br>
+            <button>SUBMIT</button>
+        </form>
+    </div>
+</body>
+</html>

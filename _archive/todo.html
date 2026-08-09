@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>to do</title>
+</head>
+<style>
+    body{
+        background-color: white;
+    }
+    .todo{
+        border: 1px solid;
+        border-radius: 20px;
+        background-color: whitesmoke;
+        justify-content: center;
+        align-items: center;
+        border: none;
+        gap: 10px;
+        width: fit-content;
+        padding-bottom: 10px;
+        margin-left: 500px;
+        padding: 20px 30px ;
+
+    }
+    .todo input,button{
+        padding: 10px;
+        border-radius: 10px;
+      
+    }
+    .todo button:hover{
+        color: black;
+        background-color: white;
+        transition: 03s;
+    }
+    .js {
+        display: flex;
+        border: 2px solid;
+        background-color: azure;
+        border-radius: 3px;
+        padding: 10px;
+        border: none;
+    }
+    .l1{
+             
+    }
+</style>
+<body>
+    <div class="todo">
+        <h1>Todo App</h1>
+        <input type="text" name="task" id="todoinput" placeholder="enter task">
+        <button id="button">ADD</button>
+        <ul id="todolist">
+
+        </ul>
+        </div>
+        <script>
+            const todoInput = document.querySelector('#todoinput');
+            const todolist = document.querySelector('#todolist');
+            const addbutton = document.querySelector('#button');
+             
+            const todos = [];
+            addbutton.addEventListener("click" ,() => {
+                const value = todoInput.value.trim();
+
+                if(value === ""){
+                    console.log("yo kid the input is empty");
+                }
+                todos.push(value);
+                render();
+
+                console.log(todos);
+            })
+
+           function render(){
+            const todohtml = todos.map((todo) =>{
+               return `
+                <li>${todo}</lis>
+                `;
+            });
+            todolist.innerHTML= todohtml;
+           }
+
+
+        </script>
+</body>
+</html>

@@ -1,0 +1,78 @@
+<script>
+    const TodoInput = document.querySelector('#TodoInput');
+     const TodoList = document.querySelector('#TodoList');
+      const addButton = document.querySelector('#add'); 
+
+      const todos = JSON.parse(localStorage.getItem("todos")) || [];
+      render();
+    console.log("==================")
+    console.log(todos);
+    console.log("==================")
+
+     addButton.addEventListener('click', () => {
+  const value = TodoInput.value.trim();
+  TodoInput.value = "";
+
+  if (value === "") {
+    console.log("This input is empty");
+    return; 
+  }
+
+  const todo = {
+    id: Date.now(), 
+    text: value,
+    completed: false
+  };
+
+  todos.push(todo); 
+  console.log(todos);
+  render();
+  saveData();
+});
+
+     function render(){
+  const TodoHTML = todos.map((todo, index)=>{
+    return `
+      <li>
+        <label class="checkbox-container">
+          <input type="checkbox" class="check" ${todo.completed?"checked": ""} onclick= "complete(${todo.id})"> 
+          <span class="checkmark"></span>
+          <span class="${todo.completed? "done" : ""}">
+          ${todo.text}
+          </span>
+        </label>
+        <button class="Hover" style="margin-left: 300px;" onclick="deleteTodo(${index})">❌</button>
+      </li>
+    `;
+  })
+  TodoList.innerHTML = TodoHTML.join("");
+}
+
+
+      function deleteTodo(index){
+       todos.splice(index, 1)
+       render();
+       saveData();
+       console.log("index "+index +" Was deleted")
+
+      }
+
+      function complete(id){
+        const found = todos.find(todo=> todo.id == id)
+        console.log("=========================")
+        console.log(found);
+        console.log("=========================")
+        if(found){
+            found.completed = !found.completed
+        }
+        console.log("___________________________")
+        console.log(todos)
+        saveData();
+        render();
+        
+      }
+      function saveData(){
+        localStorage.setItem("todos", JSON.stringify(todos));
+      }
+   </script>
+gay

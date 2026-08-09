@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html>
+<body>
+
+<ul id="list"></ul>
+
+<script>
+fetch("https://open.er-api.com/v6/latest/USD")
+.then(res => res.json())
+.then(data => {
+  const list = document.getElementById("list");
+
+  Object.keys(data.rates).slice(0, 10).forEach(currency => {
+    list.innerHTML += `<li>${currency}: ${data.rates[currency]}</li>`;
+  });
+});
+</script>
+
+</body>
+</html>
