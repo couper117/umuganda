@@ -1,0 +1,36 @@
+<%
+/**
+ * Footer. Carries the ownership statement and the data-use note.
+ *
+ * Expects: t (Strings), locale (Locale), year (number)
+ */
+%>
+<footer class="site-footer">
+  <div class="container footer-grid">
+    <div class="footer-logo">
+      <h3>Clean Kigali</h3>
+      <p class="footer-operator"><%= t.footer.operatorLine %></p>
+      <p><%= t.footer.description %></p>
+    </div>
+    <div class="footer-links">
+      <h4><%= t.footer.resourcesHeading %></h4>
+      <ul>
+        <li><a href="#home" data-scroll><%= t.nav.home %></a></li>
+        <li><a href="#tracker-section" data-scroll><%= t.nav.track %></a></li>
+        <li><a href="#report-section" data-scroll><%= t.nav.report %></a></li>
+      </ul>
+    </div>
+    <div class="footer-links">
+      <h4><%= t.footer.partnersHeading %></h4>
+      <ul>
+        <li><a href="https://kigalicity.gov.rw" target="_blank" rel="noopener noreferrer"><%= t.footer.cityLink %></a></li>
+        <li><a href="https://rema.gov.rw" target="_blank" rel="noopener noreferrer"><%= t.footer.remaLink %></a></li>
+        <li><a href="/login" rel="nofollow"><%= t.footer.adminLink %></a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="container footer-bottom">
+    <p>&copy; <%= year %> Clean Kigali Initiative</p>
+    <p class="footer-note"><%= t.footer.dataNote %></p>
+  </div>
+</footer>

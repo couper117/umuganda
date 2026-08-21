@@ -1,0 +1,27 @@
+<%
+/**
+ * Masthead: who operates the service, plus the language selector.
+ *
+ * The language choice is a utility rather than navigation, so it sits here
+ * instead of buried at the bottom of the mobile menu drawer where it used to be.
+ *
+ * Expects: t (Strings), locale (Locale), languages (LanguageOption[])
+ */
+%>
+<div class="masthead">
+  <div class="container masthead-inner">
+    <div>
+      <span class="masthead-operator"><%= t.masthead.operator %></span>
+      <span class="masthead-desc"><%= t.masthead.description %></span>
+    </div>
+    <div class="lang-switcher" role="group" aria-label="<%= t.masthead.chooseLanguage %>">
+      <% languages.forEach(function (option) { %>
+        <a href="/<%= option.locale %>"
+           class="lang-btn"
+           lang="<%= option.htmlLang %>"
+           hreflang="<%= option.htmlLang %>"
+           <%= option.locale === locale ? 'aria-current="true"' : '' %>><%= option.nativeName %></a>
+      <% }); %>
+    </div>
+  </div>
+</div>

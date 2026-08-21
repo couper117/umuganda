@@ -1,0 +1,166 @@
+<%
+/**
+ * Report submission form.
+ *
+ * Accessibility notes, because this is where the PHP version was broken:
+ *
+ *  - The category and urgency radios are REAL radio inputs. The old markup set
+ *    them to display:none and drove selection from a JS class on a wrapping div,
+ *    which made them unreachable by keyboard entirely — you could not tab to
+ *    them, arrow between them, or see focus, and `required` on an invisible
+ *    field made Chrome refuse to focus the invalid control, stalling the form.
+ *    Here each input is visually hidden but focusable, wrapped in its <label>,
+ *    so native arrow-key navigation and screen reader announcement work.
+ *  - Selection is signalled three ways, never by colour alone: a checkmark
+ *    appears, the border goes from 1px to 2px, and the fill changes.
+ *  - Each group is a <fieldset> with a <legend>, so the question is announced
+ *    with the options.
+ *
+ * Expects: t (Strings), locale, error (string|null), csrfToken, categories, urgencies
+ */
+%>
+<div class="form-card">
+  <h2 id="report-heading"><%= t.form.heading %></h2>
+  <p class="form-intro"><%= t.form.intro %></p>
+
+  <% if (error) { %>
+    <div class="form-error" role="alert"><%= error %></div>
+  <% } %>
+
+  <p class="form-required-note"><%= t.form.requiredNote %></p>
+
+  <form method="POST" action="/<%= locale %>" id="reportForm" novalidate>
+    <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+
+    <fieldset class="choice-group">
+      <legend class="field-label">
+        <%= t.form.categoryLegend %> <span class="req" aria-hidden="true">*</span>
+      </legend>
+      <div class="choice-list choice-list-category">
+        <% categories.forEach(function (category, index) { %>
+          <label class="choice">
+            <input class="choice-input"
+                   type="radio"
+                   name="category"
+                   value="<%= category %>"
+                   <%= index === 0 ? 'required' : '' %>>
+            <span class="choice-body">
+              <span class="choice-indicator" aria-hidden="true">
+                <svg class="choice-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <path d="M3 8.5l3.5 3.5L13 5"/>
+                </svg>
+              </span>
+              <%- include('category-icon', { category: category }) %>
+              <span class="choice-text"><%= t.categories[category] %></span>
+            </span>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <fieldset class="choice-group">
+      <legend class="field-label">
+        <%= t.form.urgencyLegend %> <span class="req" aria-hidden="true">*</span>
+      </legend>
+      <div class="choice-list choice-list-urgency">
+        <% urgencies.forEach(function (urgency, index) { %>
+          <label class="choice choice-urgency" data-level="<%= urgency %>">
+            <input class="choice-input"
+                   type="radio"
+                   name="urgency"
+                   value="<%= urgency %>"
+                   <%= index === 0 ? 'required' : '' %>>
+            <span class="choice-body">
+              <span class="choice-indicator" aria-hidden="true">
+                <svg class="choice-check" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" focusable="false">
+                  <path d="M3 8.5l3.5 3.5L13 5"/>
+                </svg>
+              </span>
+              <span class="choice-text"><%= t.urgencies[urgency] %></span>
+            </span>
+          </label>
+        <% }); %>
+      </div>
+    </fieldset>
+
+    <div class="field">
+      <label class="field-label" for="location">
+        <%= t.form.locationLabel %> <span class="req" aria-hidden="true">*</span>
+      </label>
+      <p class="field-hint" id="location-hint"><%= t.form.locationHint %></p>
+      <input type="text"
+             id="location"
+             name="location"
+             class="field-input"
+             maxlength="100"
+             placeholder="<%= t.form.locationPlaceholder %>"
+             aria-describedby="location-hint"
+             autocomplete="off"
+             required>
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="sector">
+        <%= t.form.sectorLabel %> <span class="field-optional">(<%= t.form.optional %>)</span>
+      </label>
+      <input type="text"
+             id="sector"
+             name="sector"
+             class="field-input"
+             maxlength="50"
+             placeholder="<%= t.form.sectorPlaceholder %>"
+             autocomplete="off">
+    </div>
+
+    <div class="field">
+      <label class="field-label" for="details">
+        <%= t.form.detailsLabel %> <span class="field-optional">(<%= t.form.optional %>)</span>
+      </label>
+      <textarea id="details"
+                name="details"
+                class="field-input field-textarea"
+                maxlength="2000"
+                placeholder="<%= t.form.detailsPlaceholder %>"></textarea>
+    </div>
+
+    <fieldset class="field-set-contact">
+      <legend class="field-label"><%= t.form.contactHeading %></legend>
+      <p class="field-note" id="privacy-notice"><%= t.form.privacyNotice %></p>
+
+      <div class="field">
+        <label class="field-label" for="name">
+          <%= t.form.nameLabel %> <span class="field-optional">(<%= t.form.optional %>)</span>
+        </label>
+        <input type="text"
+               id="name"
+               name="name"
+               class="field-input"
+               maxlength="50"
+               placeholder="<%= t.form.namePlaceholder %>"
+               aria-describedby="privacy-notice"
+               autocomplete="name">
+      </div>
+
+      <div class="field">
+        <label class="field-label" for="contact">
+          <%= t.form.contactLabel %> <span class="field-optional">(<%= t.form.optional %>)</span>
+        </label>
+        <input type="text"
+               id="contact"
+               name="contact"
+               class="field-input"
+               maxlength="50"
+               placeholder="<%= t.form.contactPlaceholder %>"
+               aria-describedby="privacy-notice"
+               autocomplete="tel">
+      </div>
+    </fieldset>
+
+    <button type="submit"
+            class="btn btn-primary btn-submit"
+            data-label="<%= t.form.submit %>"
+            data-working="<%= t.form.submitting %>">
+      <%= t.form.submit %>
+    </button>
+  </form>
+</div>

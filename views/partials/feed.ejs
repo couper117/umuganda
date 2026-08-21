@@ -1,0 +1,62 @@
+<%
+/**
+ * Public feed of recent reports.
+ *
+ * Only non-identifying columns reach this template — the query in
+ * services/reports.ts does not select name, contact or ip.
+ *
+ * The PHP version emitted id="feedEmptyState" twice on the same page, which is
+ * invalid and meant getElementById only ever found the first one; searching with
+ * no matches therefore showed nothing at all. There is one such element here,
+ * and the search script toggles it.
+ *
+ * Expects: t (Strings), reports (PublicReport[] with .statusKey, .urgencyKey)
+ */
+%>
+<div class="tracker-card">
+  <div class="tracker-header">
+    <h2 id="feed-heading"><%= t.feed.heading %></h2>
+    <div class="field">
+      <label class="field-label" for="reportSearch"><%= t.feed.searchLabel %></label>
+      <input type="search"
+             id="reportSearch"
+             class="field-input"
+             placeholder="<%= t.feed.searchPlaceholder %>"
+             autocomplete="off">
+    </div>
+  </div>
+
+  <ul class="reports-feed" id="reportsFeed">
+    <% reports.forEach(function (report) { %>
+      <li class="feed-item"
+          data-search="<%= [report.location, report.sector, t.categories[report.categoryKey]].filter(Boolean).join(' ').toLowerCase() %>">
+        <div class="feed-item-top">
+          <span class="feed-title">
+            <%- include('category-icon', { category: report.categoryKey }) %>
+            <span><%= t.categories[report.categoryKey] %></span>
+          </span>
+          <span class="badge badge-<%= report.urgencyKey %>"><%= t.urgencies[report.urgencyKey] %></span>
+        </div>
+
+        <p class="feed-desc"><%= report.location %></p>
+
+        <div class="feed-meta">
+          <span class="feed-location"><%= report.sector || t.feed.defaultSector %></span>
+          <span class="feed-status feed-status-<%= report.statusKey %>">
+            <span class="status-glyph" aria-hidden="true"><%= report.statusGlyph %></span>
+            <%= t.statuses[report.statusKey] %>
+          </span>
+        </div>
+        <p class="feed-date"><%= report.dateLabel %></p>
+      </li>
+    <% }); %>
+  </ul>
+
+  <% if (reports.length === 0) { %>
+    <p class="feed-empty"><%= t.feed.empty %></p>
+  <% } %>
+
+  <!-- Shown by the search script when a query matches nothing. One element,
+       one id. -->
+  <p class="feed-empty" id="feedEmptyState" hidden><%= t.feed.noMatches %></p>
+</div>

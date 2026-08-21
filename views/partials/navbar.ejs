@@ -1,0 +1,71 @@
+<%
+/**
+ * navbar.ejs — the permanent glass bar, shared by every public page.
+ *
+ * `current` names the active page so one link can be marked aria-current. The
+ * language switcher rewrites only the locale segment, so switching language
+ * keeps you on the page you were reading rather than dumping you at the home
+ * page — which is what the three separate PHP pages used to do.
+ */
+
+/** Path suffix for the current page, used to build the language links. */
+const SUFFIX = { home: '', report: '/report', track: '/track', reports: '/reports' };
+const suffix = SUFFIX[current] !== undefined ? SUFFIX[current] : '';
+%>
+<nav class="navbar" aria-label="<%= t.nav.label %>">
+  <div class="container nav-inner">
+    <a class="navbar-brand" href="/<%= locale %>">
+      <span class="brand-mark" aria-hidden="true">CK</span>
+      <span>Clean<span class="brand-highlight">Kigali</span></span>
+    </a>
+
+    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav"
+            data-nav-toggle data-label-open="<%= t.nav.menu %>" data-label-close="<%= t.nav.closeMenu %>">
+      <span class="visually-hidden"><%= t.nav.menu %></span>
+      <%- include('icons', { name: 'menu' }) %>
+    </button>
+
+    <ul class="nav-links" id="main-nav">
+      <li>
+        <a class="nav-link <%= current === 'home' ? 'is-active' : '' %>" href="/<%= locale %>"
+           <%= current === 'home' ? 'aria-current="page"' : '' %>>
+          <%- include('icons', { name: 'home' }) %><%= t.nav.home %>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link <%= current === 'track' ? 'is-active' : '' %>" href="/<%= locale %>/track"
+           <%= current === 'track' ? 'aria-current="page"' : '' %>>
+          <%- include('icons', { name: 'search' }) %><%= t.nav.track %>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link <%= current === 'reports' ? 'is-active' : '' %>" href="/<%= locale %>/reports"
+           <%= current === 'reports' ? 'aria-current="page"' : '' %>>
+          <%- include('icons', { name: 'list' }) %><%= t.nav.reports %>
+        </a>
+      </li>
+      <li>
+        <a class="nav-link" href="/login">
+          <%- include('icons', { name: 'lock' }) %><%= t.nav.admin %>
+        </a>
+      </li>
+      <li>
+        <div class="lang-switch" role="group" aria-label="<%= t.masthead.chooseLanguage %>">
+          <% languages.forEach(function (lang) { %>
+            <a href="/<%= lang.locale %><%= suffix %>" lang="<%= lang.htmlLang %>"
+               title="<%= lang.nativeName %>"
+               <%= lang.locale === locale ? 'aria-current="true"' : '' %>>
+              <%= lang.shortCode %>
+              <span class="visually-hidden"><%= lang.nativeName %></span>
+            </a>
+          <% }); %>
+        </div>
+      </li>
+      <li>
+        <a class="btn-cta" href="/<%= locale %>/report">
+          <%= t.nav.report %><%- include('icons', { name: 'arrow' }) %>
+        </a>
+      </li>
+    </ul>
+  </div>
+</nav>

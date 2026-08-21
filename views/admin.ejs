@@ -1,0 +1,277 @@
+<%
+/**
+ * admin.ejs — the dashboard.
+ *
+ * Loads the public stylesheet first for the shared tokens, fonts, navbar and
+ * buttons, then admin.css for the pieces only the dashboard has. That is what
+ * keeps the two halves of the service looking like one product rather than two.
+ * English only, as admin.php was.
+ *
+ * Report content is public input: everything below is interpolated with the
+ * escaping tag, and admin.js sets text with textContent rather than innerHTML.
+ */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Dashboard — Clean Kigali</title>
+  <!-- Read by admin.js and sent with every state-changing request -->
+  <meta name="csrf-token" content="<%= csrfToken %>">
+  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="admin-body">
+  <a class="skip-link" href="#queue">Skip to the report queue</a>
+
+  <nav class="navbar" aria-label="Dashboard navigation">
+    <div class="container nav-inner">
+      <a class="navbar-brand" href="/admin">
+        <span class="brand-mark" aria-hidden="true">CK</span>
+        <span>Clean<span class="brand-highlight">Kigali</span></span>
+      </a>
+
+      <span class="admin-tag">Dashboard</span>
+
+      <div class="admin-identity">
+        <a class="nav-link" href="<%= portalHref %>">View public site</a>
+        <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
+        <form method="POST" action="/logout" class="logout-form">
+          <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+          <button type="submit" class="btn-cta btn-cta-quiet">Sign out</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <header class="page-head">
+    <div class="container">
+      <h1>Report queue</h1>
+      <p>
+        Reports are ordered by urgency, then newest first. Changes are saved immediately and recorded in the audit log.
+      </p>
+    </div>
+  </header>
+
+  <main class="container dashboard">
+
+    <!-- Counters -->
+    <section class="stats-grid" aria-label="Report counts">
+      <div class="stat-card">
+        <div class="stat-number" id="stat-total"><%= stats.total %></div>
+        <div class="stat-label">Total reports</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-pending"><%= stats.pending %></div>
+        <div class="stat-label">In progress</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-number" id="stat-resolved"><%= stats.done %></div>
+        <div class="stat-label">Resolved</div>
+      </div>
+      <div class="stat-card stat-card-critical">
+        <div class="stat-number" id="stat-high"><%= stats.high %></div>
+        <div class="stat-label">High urgency</div>
+      </div>
+    </section>
+
+    <!-- Hotspots -->
+    <% if (hotspots.length > 0) { %>
+      <section class="hotspots" aria-labelledby="hotspots-heading">
+        <h2 id="hotspots-heading" class="hotspots-heading">Most reported locations</h2>
+        <ul class="hotspot-list">
+          <% hotspots.forEach(function (spot) { %>
+            <li class="hotspot">
+              <span class="hotspot-name"><%= spot.location || 'Unspecified' %></span>
+              <span class="hotspot-count"><%= spot.count %> report<%= Number(spot.count) === 1 ? '' : 's' %></span>
+            </li>
+          <% }); %>
+        </ul>
+      </section>
+    <% } %>
+
+    <!-- Search and filters. Plain controls, no bottom sheet: a <details>
+         disclosure is operable by keyboard and needs no JS to open. -->
+    <section class="filter-bar" aria-labelledby="filter-heading">
+      <h2 id="filter-heading" class="visually-hidden">Search and filter</h2>
+
+      <div class="field">
+        <label class="field-label" for="adminSearch">Search reports</label>
+        <input type="search" id="adminSearch" class="field-input"
+               placeholder="Reference, location, sector or reporter" autocomplete="off">
+      </div>
+
+      <details class="filter-disclosure" id="filterDisclosure">
+        <summary class="filter-summary">
+          Filters
+          <span class="filter-count" id="filterCount" hidden>0</span>
+        </summary>
+
+        <div class="filter-panel">
+          <fieldset class="filter-set">
+            <legend class="field-label">Status</legend>
+            <div class="filter-pills">
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="pending"><span class="pill-body">In progress</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="done"><span class="pill-body">Resolved</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="notdone"><span class="pill-body">Not resolved</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="filter-set">
+            <legend class="field-label">Urgency</legend>
+            <div class="filter-pills">
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="high"><span class="pill-body">High</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="medium"><span class="pill-body">Medium</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="low"><span class="pill-body">Low</span></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="filter-set">
+            <legend class="field-label">Category</legend>
+            <div class="filter-pills">
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="full-bin"><span class="pill-body">Overflowing bin</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="blocked-drain"><span class="pill-body">Blocked drain</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="illegal-dumping"><span class="pill-body">Illegal dumping</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="litter"><span class="pill-body">General litter</span></label>
+              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="other"><span class="pill-body">Other</span></label>
+            </div>
+          </fieldset>
+
+          <button type="button" class="btn btn-secondary" id="clearFiltersBtn">Clear all filters</button>
+        </div>
+      </details>
+
+      <p class="filter-status" id="filterStatus" role="status" aria-live="polite"></p>
+    </section>
+
+    <!-- Queue.
+         Laid out as dense rows rather than stacked blocks: the old card put one
+         report per ~350px of height, so a queue of any size was almost entirely
+         scrolling. Everything an officer triages on — where it is, who reported
+         it, how to reach them, urgency and status — is now on one line, with only
+         the free-text description behind a disclosure. -->
+    <section id="queue" aria-labelledby="queue-heading">
+      <div class="queue-head">
+        <h2 id="queue-heading">Reports</h2>
+        <p class="queue-count" id="queueCount"><%= cards.length %> total</p>
+      </div>
+
+      <% if (cards.length > 0) { %>
+        <div class="queue-legend" aria-hidden="true">
+          <span class="col-report">Report</span>
+          <span class="col-where">Location</span>
+          <span class="col-who">Reporter</span>
+          <span class="col-flags">Urgency &amp; status</span>
+          <span class="col-actions">Set status</span>
+        </div>
+      <% } %>
+
+      <ul class="report-list" id="reportList">
+        <% cards.forEach(function (card) { %>
+          <li class="report-card urgency-<%= card.urgencyKey %>"
+              id="report-<%= card.id %>"
+              data-id="<%= card.id %>"
+              data-reference="<%= card.reference %>"
+              data-status="<%= card.statusKey %>"
+              data-urgency="<%= card.urgencyKey %>"
+              data-category="<%= card.categoryKey %>"
+              data-search="<%= card.search %>">
+
+            <div class="col-report">
+              <span class="row-icon" aria-hidden="true">
+                <%- include('partials/icons', { category: card.categoryKey }) %>
+              </span>
+              <div class="row-titles">
+                <h3 class="row-title"><%= card.categoryLabel %></h3>
+                <p class="row-meta"><%= card.reference %> · <%= card.time %></p>
+              </div>
+            </div>
+
+            <div class="col-where" data-label="Location">
+              <p class="row-strong"><%= card.location %></p>
+              <p class="row-quiet"><%= card.sector %></p>
+            </div>
+
+            <div class="col-who" data-label="Reporter">
+              <p class="row-strong"><%= card.reporterName %></p>
+              <p class="row-quiet"><%= card.contact %></p>
+            </div>
+
+            <div class="col-flags">
+              <span class="badge badge-<%= card.urgencyKey %>"><%= card.urgencyLabel %></span>
+              <!-- admin.js rewrites this text and the card's data-status; the
+                   colour follows data-status from CSS, so no class juggling. -->
+              <span class="status-chip" data-role="status-label"><%= card.statusLabel %></span>
+            </div>
+
+            <div class="col-actions">
+              <fieldset class="status-set">
+                <legend class="visually-hidden">Status for <%= card.reference %></legend>
+                <div class="status-buttons">
+                  <button type="button" class="status-btn<%= card.statusKey === 'pending' ? ' is-active' : '' %>"
+                          data-status="pending" data-report="<%= card.id %>"
+                          aria-pressed="<%= card.statusKey === 'pending' ? 'true' : 'false' %>">In progress</button>
+                  <button type="button" class="status-btn<%= card.statusKey === 'notdone' ? ' is-active' : '' %>"
+                          data-status="notdone" data-report="<%= card.id %>"
+                          aria-pressed="<%= card.statusKey === 'notdone' ? 'true' : 'false' %>">Not resolved</button>
+                  <button type="button" class="status-btn<%= card.statusKey === 'done' ? ' is-active' : '' %>"
+                          data-status="done" data-report="<%= card.id %>"
+                          aria-pressed="<%= card.statusKey === 'done' ? 'true' : 'false' %>">Resolved</button>
+                </div>
+              </fieldset>
+
+              <button type="button" class="icon-btn delete-btn" data-report="<%= card.id %>"
+                      data-reference="<%= card.reference %>"
+                      title="Delete <%= card.reference %>">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
+                  <path d="M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7"/><path d="M10 12v5M14 12v5"/>
+                </svg>
+                <span class="visually-hidden">Delete report <%= card.reference %></span>
+              </button>
+            </div>
+
+            <details class="row-details">
+              <summary>Description and origin</summary>
+              <dl class="row-detail-fields">
+                <dt>Description</dt>
+                <dd><%= card.details %></dd>
+                <dt>Submitted from</dt>
+                <dd><code><%= card.ip %></code></dd>
+              </dl>
+            </details>
+          </li>
+        <% }); %>
+      </ul>
+
+      <% if (cards.length === 0) { %>
+        <p class="empty-state">No reports have been submitted yet.</p>
+      <% } %>
+
+      <p class="empty-state" id="noResultsState" hidden>No reports match your search or filters.</p>
+    </section>
+  </main>
+
+  <!-- Delete confirmation. A real dialog rather than window.confirm(), which
+       blocks the page and cannot be styled or described. -->
+  <div class="modal-backdrop" id="deleteBackdrop" hidden></div>
+  <div class="modal" id="deleteDialog" role="dialog" aria-modal="true"
+       aria-labelledby="deleteTitle" aria-describedby="deleteBody" hidden>
+    <h2 id="deleteTitle" class="modal-title">Delete this report?</h2>
+    <p id="deleteBody" class="modal-body">
+      <span id="deleteTarget"></span> will be permanently removed. This cannot be undone.
+    </p>
+    <div class="modal-actions">
+      <button type="button" class="btn btn-secondary" id="deleteCancel">Cancel</button>
+      <button type="button" class="btn btn-danger" id="deleteConfirm">Delete report</button>
+    </div>
+  </div>
+
+  <div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
+
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<%
+/**
+ * setup.ejs — first-run creation of the one admin account.
+ *
+ * Three states: locked (an account already exists, or the token is wrong),
+ * created (done — go and sign in), and the form itself.
+ */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>First-time setup — Clean Kigali</title>
+  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="admin-body">
+  <nav class="navbar" aria-label="Site">
+    <div class="container nav-inner">
+      <a class="navbar-brand" href="<%= portalHref %>">
+        <span class="brand-mark" aria-hidden="true">CK</span>
+        <span>Clean<span class="brand-highlight">Kigali</span></span>
+      </a>
+      <span class="admin-tag">Setup</span>
+      <div class="admin-identity">
+        <a class="nav-link" href="<%= portalHref %>">Back to the public site</a>
+      </div>
+    </div>
+  </nav>
+
+  <main class="auth-page">
+    <div class="auth-panel">
+
+      <% if (lockedReason) { %>
+
+        <div class="auth-head">
+          <h1>Setup unavailable</h1>
+          <p><%= lockedReason %></p>
+        </div>
+        <a href="/login" class="btn btn-primary btn-block">Go to sign in</a>
+
+      <% } else if (created) { %>
+
+        <span class="icon-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="m5 12.5 4.5 4.5L19 7.5"/>
+          </svg>
+        </span>
+
+        <div class="auth-head">
+          <h1>Account created</h1>
+        </div>
+
+        <div class="flash flash-success" role="status">
+          <span>Your administrator account is ready. You can sign in to the dashboard now.</span>
+        </div>
+        <div class="flash flash-info">
+          <span>
+            <strong>Before going live:</strong> set <code>SETUP_TOKEN</code> in your environment, or remove this
+            route. It has disabled itself now that an account exists, but closing it off entirely is one less
+            thing to reason about.
+          </span>
+        </div>
+        <a href="/login" class="btn btn-primary btn-block">Go to sign in</a>
+
+      <% } else { %>
+
+        <div class="auth-head">
+          <h1>First-time setup</h1>
+          <p>No administrator account exists yet. Create one to secure the dashboard.</p>
+        </div>
+
+        <% if (error) { %>
+          <div class="flash flash-error" role="alert"><span><%= error %></span></div>
+        <% } %>
+
+        <form method="POST" action="/setup" autocomplete="off">
+          <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+          <% if (tokenRequired) { %>
+            <input type="hidden" name="token" value="<%= token %>">
+          <% } %>
+
+          <div class="field">
+            <label class="field-label" for="username">Username</label>
+            <input type="text" id="username" name="username" class="field-input"
+                   required maxlength="50" aria-describedby="username-hint"
+                   autocapitalize="none" autocorrect="off" spellcheck="false" autofocus>
+            <p class="password-rules" id="username-hint">3–50 characters: letters, numbers, dot, underscore or hyphen.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="password">Password</label>
+            <input type="password" id="password" name="password" class="field-input"
+                   required maxlength="200" aria-describedby="password-hint"
+                   autocomplete="new-password">
+            <p class="password-rules" id="password-hint">At least 12 characters, including letters and numbers.</p>
+          </div>
+
+          <div class="field">
+            <label class="field-label" for="confirm_password">Confirm password</label>
+            <input type="password" id="confirm_password" name="confirm_password" class="field-input"
+                   required maxlength="200" autocomplete="new-password">
+          </div>
+
+          <button type="submit" class="btn btn-primary btn-block">Create administrator account</button>
+        </form>
+
+      <% } %>
+
+      <p class="auth-foot">
+        <a href="<%= portalHref %>">Back to the public site</a>
+      </p>
+    </div>
+  </main>
+</body>
+</html>

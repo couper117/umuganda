@@ -1,0 +1,36 @@
+<%
+/**
+ * Primary navigation. A drawer on mobile, an inline row from 900px up.
+ *
+ * The toggle carries aria-expanded and aria-controls, and the drawer has its own
+ * close button so it is operable without reaching back to the toggle.
+ *
+ * Expects: t (Strings), locale (Locale)
+ */
+%>
+<nav class="navbar" aria-label="<%= t.nav.label %>">
+  <div class="container nav-container">
+    <a href="/<%= locale %>#home" class="logo-wrapper" data-scroll>
+      <span class="logo-mark" aria-hidden="true">CK</span>
+      <span class="logo-text">Clean Kigali</span>
+    </a>
+
+    <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="navLinks">
+      <span class="menu-toggle-bars" aria-hidden="true">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="menu-toggle-label"><%= t.nav.menu %></span>
+    </button>
+
+    <div class="nav-links" id="navLinks">
+      <div class="nav-links-head">
+        <span class="nav-links-title"><%= t.nav.menu %></span>
+        <button type="button" class="nav-close" id="navClose" aria-label="<%= t.nav.closeMenu %>">&times;</button>
+      </div>
+      <a href="#home" class="nav-link" aria-current="true" data-scroll><%= t.nav.home %></a>
+      <a href="#tracker-section" class="nav-link" data-scroll><%= t.nav.track %></a>
+      <a href="#report-section" class="nav-link" data-scroll><%= t.nav.report %></a>
+      <a href="/login" class="nav-link" rel="nofollow"><%= t.nav.admin %></a>
+    </div>
+  </div>
+</nav>

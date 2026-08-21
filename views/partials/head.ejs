@@ -1,0 +1,15 @@
+<%
+/**
+ * head.ejs — document head, shared by every public page.
+ *
+ * `meta` carries the per-page title and description; the four pages each pass
+ * their own, so a shared link says which page it actually is.
+ */
+%><meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title><%= meta.title %></title>
+<meta name="description" content="<%= meta.description %>">
+<meta name="theme-color" content="#00a859">
+<link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="/style.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300a859'/><text x='16' y='22' font-family='sans-serif' font-size='15' font-weight='bold' fill='white' text-anchor='middle'>CK</text></svg>">

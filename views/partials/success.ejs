@@ -1,0 +1,42 @@
+<%
+/**
+ * Post-submission confirmation.
+ *
+ * The reference code is the one thing the resident must leave with, so it is the
+ * largest text on the panel and sits in a bordered box of its own. The old
+ * version wrapped it in a decorative circle with a checkmark; the code itself is
+ * the message.
+ *
+ * Expects: t (Strings), locale, reference (string)
+ */
+%>
+<div class="form-card">
+  <div class="success-card" role="status">
+    <h2 class="success-heading"><%= t.success.heading %></h2>
+    <p class="success-body"><%= t.success.body %></p>
+
+    <div class="ref-box">
+      <span class="ref-label"><%= t.success.refLabel %></span>
+      <strong class="ref-code" id="refCode"><%= reference %></strong>
+      <p class="ref-keep"><%= t.success.keepSafe %></p>
+    </div>
+
+    <div class="success-actions">
+      <button type="button"
+              class="btn btn-primary"
+              id="copyRefBtn"
+              data-reference="<%= reference %>"><%= t.success.copy %></button>
+      <button type="button"
+              class="btn btn-secondary"
+              id="trackRefBtn"
+              data-reference="<%= reference %>"><%= t.success.track %></button>
+    </div>
+
+    <!-- Copy outcome is announced here rather than in an alert() dialog. -->
+    <p class="success-status" id="copyStatus" role="status" aria-live="polite"></p>
+
+    <p class="success-another">
+      <a href="/<%= locale %>#report-section"><%= t.success.another %></a>
+    </p>
+  </div>
+</div>

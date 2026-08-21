@@ -1,0 +1,51 @@
+<%
+/**
+ * sitefooter.ejs — dark footer, shared by every public page.
+ *
+ * Named sitefooter rather than footer so it does not collide with the existing
+ * footer.ejs the single-page version used.
+ */
+%>
+<footer class="app-footer">
+  <div class="container">
+    <div class="footer-grid">
+
+      <div>
+        <a class="footer-brand" href="/<%= locale %>">
+          <span class="brand-mark" aria-hidden="true">CK</span>
+          <span>Clean<span class="brand-highlight">Kigali</span></span>
+        </a>
+        <p class="footer-desc"><%= t.footer.description %></p>
+        <p class="footer-desc"><%= t.footer.operatorLine %></p>
+      </div>
+
+      <div>
+        <h2 class="footer-title"><%= t.footer.resourcesHeading %></h2>
+        <ul class="footer-links">
+          <li><a href="/<%= locale %>/report"><%= t.nav.report %></a></li>
+          <li><a href="/<%= locale %>/track"><%= t.nav.track %></a></li>
+          <li><a href="/<%= locale %>/reports"><%= t.nav.reports %></a></li>
+          <li><a href="/login"><%= t.footer.adminLink %></a></li>
+        </ul>
+      </div>
+
+      <div>
+        <h2 class="footer-title"><%= t.footer.partnersHeading %></h2>
+        <ul class="footer-links">
+          <li><a href="https://www.kigalicity.gov.rw/" target="_blank" rel="noopener noreferrer"><%= t.footer.cityLink %></a></li>
+          <li><a href="https://www.rema.gov.rw/" target="_blank" rel="noopener noreferrer"><%= t.footer.remaLink %></a></li>
+        </ul>
+      </div>
+
+    </div>
+
+    <hr class="footer-divider">
+
+    <div class="footer-bottom">
+      <p class="footer-note"><%= t.footer.dataNote %></p>
+      <p>&copy; <%= year %> Clean Kigali Initiative</p>
+    </div>
+  </div>
+</footer>
+
+<script src="/js/app.js" defer></script>

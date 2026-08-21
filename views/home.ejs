@@ -1,0 +1,136 @@
+<%
+/**
+ * home.ejs — the landing page.
+ *
+ * Hero, live statistics, how it works, a preview of recent reports, and a
+ * closing call to action. The submission form and the tracker are no longer
+ * here; they are pages of their own, so this page can lead rather than carry
+ * everything at once.
+ *
+ * EJS escapes every interpolation by default, which is what replaces the
+ * hand-called e() helper the PHP templates used. Report content is public
+ * input, so it must never be emitted with the raw output tag.
+ */
+%><!DOCTYPE html>
+<html lang="<%= t.htmlLang %>">
+<head>
+  <%- include('partials/head', { meta: meta }) %>
+</head>
+<body data-strings="<%= clientStrings %>">
+  <a class="skip-link" href="#main"><%= t.skipLink %></a>
+
+  <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
+
+  <main id="main">
+
+    <section class="hero">
+      <div class="hero-bg" aria-hidden="true"></div>
+      <div class="hero-overlay" aria-hidden="true"></div>
+      <div class="container hero-content">
+        <span class="pill-badge"><%= t.hero.eyebrow %></span>
+        <h1><%= t.hero.heading %></h1>
+        <p class="hero-lead"><%= t.hero.lead %></p>
+        <div class="hero-actions">
+          <a class="btn btn-primary" href="/<%= locale %>/report">
+            <%- include('partials/icons', { name: 'pencil' }) %><%= t.hero.reportCta %>
+          </a>
+          <a class="btn btn-ghost" href="/<%= locale %>/track">
+            <%- include('partials/icons', { name: 'search' }) %><%= t.hero.trackCta %>
+          </a>
+        </div>
+      </div>
+    </section>
+
+    <!-- Real counts. No placeholder figures: an empty table reports zero and
+         the rate shows the "no data" string rather than an invented percentage. -->
+    <section class="section" aria-labelledby="stats-heading">
+      <div class="container">
+        <h2 id="stats-heading" class="visually-hidden"><%= t.stats.heading %></h2>
+        <div class="stats-grid">
+          <div class="stat-box">
+            <div class="stat-number"><%= stats.total %></div>
+            <div class="stat-label"><%= t.stats.total %></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number"><%= stats.pending %></div>
+            <div class="stat-label"><%= t.stats.pending %></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number"><%= stats.resolved %></div>
+            <div class="stat-label"><%= t.stats.resolved %></div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-number"><%= stats.resolutionRate %></div>
+            <div class="stat-label"><%= t.stats.rate %></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section-soft" aria-labelledby="how-heading">
+      <div class="container">
+        <div class="center-text">
+          <span class="eyebrow"><%= t.masthead.operator %></span>
+          <h2 id="how-heading"><%= t.home.howHeading %></h2>
+          <p><%= t.home.howIntro %></p>
+        </div>
+
+        <!-- Numbered because these genuinely are a sequence: you cannot track a
+             reference before you have been given one. -->
+        <ol class="card-grid" style="list-style:none;margin:0;padding:0;">
+          <% t.home.steps.forEach(function (step, i) { %>
+            <li class="card card-step">
+              <span class="step-number" aria-hidden="true"><%= i + 1 %></span>
+              <span class="icon-circle">
+                <%- include('partials/icons', { name: ['pencil', 'clip', 'check'][i] || 'other' }) %>
+              </span>
+              <h3><%= step.title %></h3>
+              <p><%= step.body %></p>
+            </li>
+          <% }); %>
+        </ol>
+      </div>
+    </section>
+
+    <section class="section" aria-labelledby="recent-heading">
+      <div class="container">
+        <div class="center-text">
+          <h2 id="recent-heading"><%= t.home.recentHeading %></h2>
+          <p><%= t.home.recentIntro %></p>
+        </div>
+
+        <% if (reports.length === 0) { %>
+          <div class="empty-state">
+            <%- include('partials/icons', { name: 'inbox' }) %>
+            <p><%= t.feed.empty %></p>
+          </div>
+        <% } else { %>
+          <div class="feed-grid">
+            <% reports.forEach(function (r) { %>
+              <%- include('partials/feedcard', { t: t, r: r }) %>
+            <% }); %>
+          </div>
+          <p style="text-align:center;margin-top:40px;">
+            <a class="btn btn-outline" href="/<%= locale %>/reports">
+              <%= t.home.viewAll %><%- include('partials/icons', { name: 'arrow' }) %>
+            </a>
+          </p>
+        <% } %>
+      </div>
+    </section>
+
+    <section class="cta-band">
+      <div class="container">
+        <h2><%= t.home.ctaHeading %></h2>
+        <p><%= t.home.ctaBody %></p>
+        <a class="btn btn-primary" href="/<%= locale %>/report">
+          <%- include('partials/icons', { name: 'pencil' }) %><%= t.home.ctaButton %>
+        </a>
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>
+</body>
+</html>

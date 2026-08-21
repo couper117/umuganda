@@ -1,0 +1,44 @@
+<%
+/**
+ * Reference tracker.
+ *
+ * The result is rendered client-side into #trackingResult, which is a live
+ * region so a screen reader announces the outcome without the focus moving.
+ * Errors appear inline here rather than in an alert() dialog.
+ *
+ * Expects: t (Strings)
+ */
+%>
+<section class="container section" id="tracker-section" aria-labelledby="tracker-heading">
+  <div class="tracker-card">
+    <div class="tracker-header">
+      <h2 id="tracker-heading"><%= t.tracker.heading %></h2>
+      <p class="tracker-intro"><%= t.tracker.intro %></p>
+    </div>
+
+    <div class="tracker-search-section">
+      <div class="field">
+        <label class="field-label" for="trackRefInput"><%= t.tracker.inputLabel %></label>
+        <p class="field-hint" id="trackRefHint"><%= t.tracker.inputHint %></p>
+        <input type="text"
+               id="trackRefInput"
+               class="field-input field-input-ref"
+               placeholder="<%= t.tracker.placeholder %>"
+               aria-describedby="trackRefHint"
+               autocomplete="off"
+               spellcheck="false"
+               inputmode="text"
+               maxlength="20">
+      </div>
+      <button type="button" class="btn btn-primary" id="trackSubmitBtn" data-label="<%= t.tracker.submit %>" data-working="<%= t.tracker.working %>">
+        <%= t.tracker.submit %>
+      </button>
+    </div>
+
+    <div id="trackingResult"
+         class="tracking-result"
+         role="status"
+         aria-live="polite"
+         aria-label="<%= t.tracker.resultsLabel %>"></div>
+  </div>
+</section>

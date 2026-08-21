@@ -1,0 +1,101 @@
+<%
+/**
+ * portal.ejs — the public portal, one template for all three languages.
+ *
+ * The PHP version was three near-identical 350-line pages (index.php,
+ * indexe.php, indexf.php) that had already drifted apart; a fix applied to one
+ * silently left the other two behind. Everything language-specific now comes
+ * from `t`, so there is one place to change.
+ *
+ * Interpolation with the escaping tag is HTML-escaped by EJS, which is what
+ * replaces the hand-called e() helper. Report content is public input, so it
+ * must never be emitted with the raw/unescaped output tag.
+ */
+%><!DOCTYPE html>
+<html lang="<%= t.htmlLang %>">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title><%= t.pageTitle %></title>
+  <meta name="description" content="<%= t.metaDescription %>">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <a class="skip-link" href="#main"><%= t.skipLink %></a>
+
+  <%- include('partials/masthead', { t: t, locale: locale, languages: languages }) %>
+  <%- include('partials/nav', { t: t, locale: locale }) %>
+
+  <main id="main">
+    <header class="hero" id="home">
+      <div class="container">
+        <p class="hero-eyebrow"><%= t.hero.eyebrow %></p>
+        <h1><%= t.hero.heading %></h1>
+        <p class="hero-lead"><%= t.hero.lead %></p>
+        <div class="hero-actions">
+          <a href="#report-section" class="btn btn-primary" data-scroll><%= t.hero.reportCta %></a>
+          <a href="#tracker-section" class="btn btn-secondary" data-scroll><%= t.hero.trackCta %></a>
+        </div>
+      </div>
+    </header>
+
+    <!-- Real counts. No placeholder figures: an empty table reports zero and
+         the rate shows an em dash. -->
+    <section class="stats-section" aria-labelledby="stats-heading">
+      <div class="container">
+        <h2 id="stats-heading" class="visually-hidden"><%= t.stats.heading %></h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-number"><%= stats.total %></div>
+            <div class="stat-label"><%= t.stats.total %></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= stats.pending %></div>
+            <div class="stat-label"><%= t.stats.pending %></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= stats.resolved %></div>
+            <div class="stat-label"><%= t.stats.resolved %></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-number"><%= stats.resolutionRate %></div>
+            <div class="stat-label"><%= t.stats.rate %></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <%- include('partials/tracker', { t: t }) %>
+
+    <section class="container section" id="report-section" aria-labelledby="report-heading">
+      <div class="main-grid">
+        <% if (reference) { %>
+          <%- include('partials/success', { t: t, locale: locale, reference: reference }) %>
+        <% } else { %>
+          <%- include('partials/report-form', {
+                t: t,
+                locale: locale,
+                error: error,
+                csrfToken: csrfToken,
+                categories: categories,
+                urgencies: urgencies
+              }) %>
+        <% } %>
+
+        <%- include('partials/feed', { t: t, reports: reports }) %>
+      </div>
+    </section>
+  </main>
+
+  <%- include('partials/footer', { t: t, locale: locale, year: year }) %>
+
+  <!--
+    Strings the browser script needs, as a data attribute rather than an inline
+    <script> block: the CSP is script-src 'self' with no nonce, and keeping that
+    promise intact is worth more than the convenience of an inline literal.
+  -->
+  <div id="clientStrings" data-strings="<%= clientStrings %>" hidden></div>
+
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+<%
+/**
+ * Category icon.
+ *
+ * Replaces the emoji the PHP pages rendered via getCategoryEmoji(). Emoji
+ * render inconsistently across Android versions and read informally; these are
+ * stroke icons that inherit currentColor and stay legible at 24px.
+ *
+ * getCategoryEmoji(), which produced them, was never modified — it retired with
+ * the rest of the PHP app to _archive/php-legacy/lib/portal.php.
+ *
+ * Expects: category (string)
+ */
+%><svg class="cat-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false"><%
+  switch (category) {
+    case 'full-bin': { %><path d="M4 7h16"/><path d="M9 7V4h6v3"/><path d="M6 7l1 13h10l1-13"/><path d="M10 11v6M14 11v6"/><%
+      break;
+    }
+    case 'blocked-drain': { %><path d="M3 8h18M3 8l1.5 11h15L21 8"/><path d="M8 8v11M12 8v11M16 8v11"/><path d="M6 4c1.5 1.5 3 1.5 4.5 0S13.5 2.5 15 4s3 1.5 4.5 0"/><%
+      break;
+    }
+    case 'illegal-dumping': { %><path d="M7 9h10l-1 11H8L7 9z"/><path d="M9 9V6a3 3 0 0 1 6 0v3"/><circle cx="12" cy="14" r="4.5"/><path d="M9 17l6-6"/><%
+      break;
+    }
+    case 'litter': { %><path d="M4 20c4-1 6-3 8-7"/><path d="M12 13c1-4 4-6 8-6 0 5-3 8-8 8z"/><circle cx="6" cy="9" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="16" cy="16" r="1"/><%
+      break;
+    }
+    default: { %><path d="M12 21s7-6.3 7-11a7 7 0 1 0-14 0c0 4.7 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/><%
+      break;
+    }
+  }
+%></svg>

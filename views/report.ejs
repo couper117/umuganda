@@ -1,0 +1,178 @@
+<%
+/**
+ * report.ejs — the submission form, on its own page.
+ *
+ * Two states: the form, or the success panel once a report has been saved.
+ * The form posts to this same path, so it works with JavaScript disabled — the
+ * property the PHP pages had that is worth keeping.
+ *
+ * Category and urgency are real radio inputs styled as cards. The PHP version
+ * faked the selected state with click handlers on divs, which made them
+ * unreachable by keyboard; `input:checked + .option-body` does it in CSS
+ * instead, so the controls stay native.
+ */
+%><!DOCTYPE html>
+<html lang="<%= t.htmlLang %>">
+<head>
+  <%- include('partials/head', { meta: meta }) %>
+</head>
+<body data-strings="<%= clientStrings %>">
+  <a class="skip-link" href="#main"><%= t.skipLink %></a>
+
+  <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
+
+  <main id="main">
+
+    <section class="page-head">
+      <div class="container">
+        <h1><%= reference ? t.success.heading : t.form.heading %></h1>
+        <p><%= reference ? t.success.body : t.form.intro %></p>
+      </div>
+    </section>
+
+    <section class="section section-panel">
+      <div class="container">
+
+        <% if (reference) { %>
+
+          <div class="panel panel-narrow success-panel">
+            <span class="icon-circle">
+              <%- include('partials/icons', { name: 'check' }) %>
+            </span>
+            <h2><%= t.success.heading %></h2>
+            <p><%= t.success.body %></p>
+
+            <div class="reference-box">
+              <p class="reference-label"><%= t.success.refLabel %></p>
+              <p class="reference-code" data-reference><%= reference %></p>
+            </div>
+            <p class="keep-safe"><%= t.success.keepSafe %></p>
+
+            <div class="success-actions">
+              <button class="btn btn-outline" type="button" data-copy-reference>
+                <%- include('partials/icons', { name: 'copy' }) %><%= t.success.copy %>
+              </button>
+              <a class="btn btn-primary" href="/<%= locale %>/track?ref=<%= encodeURIComponent(reference) %>">
+                <%- include('partials/icons', { name: 'search' }) %><%= t.success.track %>
+              </a>
+              <a class="btn btn-outline" href="/<%= locale %>/report"><%= t.success.another %></a>
+            </div>
+
+            <p class="visually-hidden" role="status" data-copy-status></p>
+          </div>
+
+        <% } else { %>
+
+          <div class="panel panel-narrow">
+
+            <% if (error) { %>
+              <div class="flash flash-error" role="alert">
+                <%- include('partials/icons', { name: 'alert' }) %>
+                <span><%= error %></span>
+              </div>
+            <% } %>
+
+            <p class="required-note"><%= t.form.requiredNote %></p>
+
+            <form method="post" action="/<%= locale %>/report" data-report-form novalidate>
+              <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+
+              <fieldset class="form-section">
+                <legend><%= t.form.categoryLegend %> *</legend>
+                <div class="option-grid">
+                  <% categories.forEach(function (c, i) { %>
+                    <label class="option-card">
+                      <input type="radio" name="category" value="<%= c %>" required <%= i === 0 ? 'checked' : '' %>>
+                      <span class="option-body">
+                        <%- include('partials/icons', { category: c }) %>
+                        <span><%= t.categories[c] %></span>
+                      </span>
+                    </label>
+                  <% }); %>
+                </div>
+              </fieldset>
+
+              <fieldset class="form-section">
+                <legend><%= t.form.urgencyLegend %> *</legend>
+                <div class="option-grid option-grid-tight">
+                  <% urgencies.forEach(function (u, i) { %>
+                    <label class="option-card">
+                      <input type="radio" name="urgency" value="<%= u %>" required <%= i === 0 ? 'checked' : '' %>>
+                      <span class="option-body urgency-<%= u %>">
+                        <%- include('partials/icons', { urgency: u }) %>
+                        <span><%= t.urgencies[u] %></span>
+                      </span>
+                    </label>
+                  <% }); %>
+                </div>
+              </fieldset>
+
+              <div class="form-section">
+                <p class="form-section-title"><%= t.form.locationLabel %></p>
+
+                <div class="field">
+                  <label for="location"><%= t.form.locationLabel %> *</label>
+                  <span class="field-hint" id="location-hint"><%= t.form.locationHint %></span>
+                  <input type="text" id="location" name="location" maxlength="100" required
+                         aria-describedby="location-hint"
+                         placeholder="<%= t.form.locationPlaceholder %>">
+                </div>
+
+                <div class="field">
+                  <label for="sector">
+                    <%= t.form.sectorLabel %> <span class="optional">(<%= t.form.optional %>)</span>
+                  </label>
+                  <input type="text" id="sector" name="sector" maxlength="50"
+                         placeholder="<%= t.form.sectorPlaceholder %>">
+                </div>
+
+                <div class="field">
+                  <label for="details">
+                    <%= t.form.detailsLabel %> <span class="optional">(<%= t.form.optional %>)</span>
+                  </label>
+                  <textarea id="details" name="details" maxlength="2000"
+                            placeholder="<%= t.form.detailsPlaceholder %>"></textarea>
+                </div>
+              </div>
+
+              <div class="form-section">
+                <p class="form-section-title"><%= t.form.contactHeading %></p>
+
+                <p class="privacy-notice"><%= t.form.privacyNotice %></p>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="name">
+                      <%= t.form.nameLabel %> <span class="optional">(<%= t.form.optional %>)</span>
+                    </label>
+                    <input type="text" id="name" name="name" maxlength="50"
+                           placeholder="<%= t.form.namePlaceholder %>">
+                  </div>
+
+                  <div class="field">
+                    <label for="contact">
+                      <%= t.form.contactLabel %> <span class="optional">(<%= t.form.optional %>)</span>
+                    </label>
+                    <input type="text" id="contact" name="contact" maxlength="50"
+                           placeholder="<%= t.form.contactPlaceholder %>">
+                  </div>
+                </div>
+              </div>
+
+              <button class="btn btn-primary btn-block" type="submit" data-submit
+                      data-label-submitting="<%= t.form.submitting %>">
+                <%- include('partials/icons', { name: 'pencil' }) %><%= t.form.submit %>
+              </button>
+            </form>
+          </div>
+
+        <% } %>
+
+      </div>
+    </section>
+
+  </main>
+
+  <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>
+</body>
+</html>
