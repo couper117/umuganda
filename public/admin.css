@@ -1,0 +1,1042 @@
+/* =========================================================================
+   Clean Kigali — dashboard stylesheet
+
+   Loaded AFTER style.css, which supplies the tokens, the self-hosted
+   Montserrat, the glass navbar, .container, .btn, .chip, .field and the
+   accessibility helpers. Nothing here redefines those; this file adds only
+   what the dashboard has and the public site does not.
+
+   The dashboard is scanned and operated rather than read, so the emphasis
+   shifts from typography to information design: urgency is carried by a
+   coloured rail on the card as well as by a badge, status by a segmented
+   control that shows its current position, and the counters sit above the
+   queue so the shape of the workload reads before any single row does.
+   ========================================================================= */
+
+:root {
+  /* Semantic colours, kept separate from the brand green so status never
+     competes with the accent. */
+  --urgency-high: #c0392b;
+  --urgency-medium: #b4791a;
+  --urgency-low: #7a8b84;
+  --danger: #c0392b;
+  --danger-dark: #a3301f;
+  --danger-tint: #fdeeec;
+}
+
+body.admin-body {
+  background: var(--bg-panel);
+}
+
+/* -------------------------------------------------------------------------
+   Navbar additions
+   ---------------------------------------------------------------------- */
+
+.admin-tag {
+  display: inline-block;
+  background: var(--green-tint);
+  color: var(--green-dark);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 12px;
+  border-radius: var(--pill);
+  flex: none;
+}
+
+.admin-identity {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  flex-wrap: wrap;
+}
+
+.admin-user {
+  font-size: 0.82rem;
+  color: var(--muted);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-user strong {
+  color: var(--ink);
+  font-weight: 800;
+}
+
+.logout-form {
+  margin: 0;
+}
+
+/* A quieter version of the nav call to action: signing out is not the action
+   the bar should be pushing you towards. */
+.btn-cta-quiet {
+  background: #fff;
+  color: var(--ink);
+  border: 1.5px solid var(--line);
+  box-shadow: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.btn-cta-quiet:hover {
+  background: var(--danger-tint);
+  border-color: var(--danger);
+  color: var(--danger);
+  box-shadow: none;
+}
+
+/* -------------------------------------------------------------------------
+   Layout
+   ---------------------------------------------------------------------- */
+
+.dashboard {
+  padding-block: clamp(32px, 5vw, 52px) clamp(60px, 9vw, 90px);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(26px, 4vw, 38px);
+}
+
+/* The public site can afford a tall green banner; a tool cannot. This is a
+   working screen, so the header gives up most of its height to the queue. */
+.admin-body .page-head .container {
+  padding-block: clamp(26px, 4vw, 38px);
+  text-align: left;
+}
+
+.admin-body .page-head h1 {
+  font-size: clamp(1.5rem, 3vw, 2rem);
+  margin-bottom: 8px;
+}
+
+.admin-body .page-head p {
+  margin-inline: 0;
+  max-width: 70ch;
+  font-size: 0.9rem;
+}
+
+/* -------------------------------------------------------------------------
+   Counters
+   ---------------------------------------------------------------------- */
+
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.stat-card {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 26px 24px;
+  border-bottom: 4px solid var(--green);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.stat-card:hover {
+  transform: translateY(-5px);
+  box-shadow: var(--shadow-md);
+}
+
+.stat-card-critical {
+  border-bottom-color: var(--urgency-high);
+}
+
+.stat-card .stat-number {
+  font-size: clamp(1.9rem, 3.6vw, 2.4rem);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--ink);
+}
+
+.stat-card-critical .stat-number {
+  color: var(--urgency-high);
+}
+
+.stat-card .stat-label {
+  font-size: 0.74rem;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 700;
+  margin-top: 5px;
+}
+
+/* -------------------------------------------------------------------------
+   Hotspots
+   ---------------------------------------------------------------------- */
+
+.hotspots {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-sm);
+}
+
+.hotspots-heading {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  font-weight: 800;
+  margin: 0 0 18px;
+}
+
+.hotspot-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hotspot {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 10px;
+  background: var(--green-tint);
+  border-radius: var(--pill);
+  padding: 9px 18px;
+}
+
+.hotspot-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--ink);
+}
+
+.hotspot-count {
+  font-size: 0.76rem;
+  color: var(--green-dark);
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------
+   Search and filters
+   ---------------------------------------------------------------------- */
+
+.filter-bar {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 26px 28px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+.field-label {
+  display: block;
+  font-weight: 700;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #666;
+  margin-bottom: 8px;
+  padding: 0;
+}
+
+.field-input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1.5px solid #eee;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.96rem;
+  color: var(--ink);
+  background: #fff;
+  outline: none;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.field-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(0, 168, 89, 0.1);
+}
+
+.filter-disclosure {
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.filter-summary {
+  cursor: pointer;
+  padding: 14px 18px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  list-style: none;
+  background: #fbfcfb;
+  transition: background 0.2s ease;
+}
+
+.filter-summary::-webkit-details-marker {
+  display: none;
+}
+
+.filter-summary::after {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--muted);
+  border-bottom: 2px solid var(--muted);
+  transform: rotate(45deg);
+  margin-left: auto;
+  transition: transform 0.25s ease;
+}
+
+.filter-disclosure[open] .filter-summary::after {
+  transform: rotate(-135deg);
+}
+
+.filter-summary:hover {
+  background: var(--green-tint);
+}
+
+.filter-count {
+  background: var(--green);
+  color: #fff;
+  border-radius: var(--pill);
+  min-width: 22px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+
+.filter-panel {
+  padding: 22px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  border-top: 1px solid var(--line);
+}
+
+.filter-set {
+  border: 0;
+  padding: 0;
+  margin: 0;
+}
+
+.filter-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pill {
+  position: relative;
+  display: inline-block;
+  cursor: pointer;
+}
+
+.pill-input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.pill-body {
+  display: inline-block;
+  padding: 8px 16px;
+  border-radius: var(--pill);
+  border: 1.5px solid var(--line);
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #555;
+  background: #fff;
+  transition: border-color 0.2s ease, background 0.2s ease, color 0.2s ease;
+}
+
+.pill:hover .pill-body {
+  border-color: #cfe0d6;
+}
+
+.pill-input:checked + .pill-body {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+  box-shadow: 0 3px 10px var(--green-glow);
+}
+
+.pill-input:focus-visible + .pill-body {
+  outline: 3px solid var(--green);
+  outline-offset: 3px;
+}
+
+.filter-status {
+  font-size: 0.84rem;
+  color: var(--muted);
+  margin: 0;
+  min-height: 1.2em;
+}
+/* -------------------------------------------------------------------------
+   Report queue
+
+   Rows, not stacked cards. The previous card gave one report ~350px of height,
+   which meant two reports per screen and a queue that was mostly scrolling.
+   Each report is now a single grid row carrying everything triage depends on:
+   what it is, where, who reported it, how urgent, and its current status.
+   Only the free-text description sits behind a disclosure.
+   ---------------------------------------------------------------------- */
+
+/* Shared column template, so the legend lines up with the rows beneath it. */
+.queue-legend,
+.report-card {
+  display: grid;
+  grid-template-columns:
+    minmax(210px, 1.6fr)   /* report   */
+    minmax(140px, 1.2fr)   /* location */
+    minmax(130px, 1fr)     /* reporter */
+    minmax(120px, auto)    /* flags    */
+    auto;                  /* actions  */
+  gap: 18px;
+  align-items: center;
+}
+
+.queue-head {
+  display: flex;
+  align-items: baseline;
+  gap: 14px;
+  margin-bottom: 16px;
+}
+
+.queue-head h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.queue-count {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+.queue-legend {
+  padding: 0 22px 10px 27px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--muted);
+}
+
+.report-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.report-card {
+  background: #fff;
+  border-radius: var(--radius-sm);
+  padding: 13px 20px;
+  box-shadow: var(--shadow-sm);
+  border-left: 5px solid var(--urgency-low);
+  transition: box-shadow 0.2s ease, opacity 0.2s ease, transform 0.2s ease;
+  row-gap: 10px;
+}
+
+.report-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateX(2px);
+}
+
+/* Urgency reads from the rail as well as the badge, so a scan down the left
+   edge shows where the pressure is without reading a word. */
+.report-card.urgency-high {
+  border-left-color: var(--urgency-high);
+}
+
+.report-card.urgency-medium {
+  border-left-color: var(--urgency-medium);
+}
+
+.report-card.urgency-low {
+  border-left-color: var(--urgency-low);
+}
+
+.report-card.is-busy {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Column: what it is */
+
+.col-report {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  min-width: 0;
+}
+
+.row-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--green-tint);
+  color: var(--green-dark);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+
+.row-icon svg {
+  width: 19px;
+  height: 19px;
+}
+
+.row-titles {
+  min-width: 0;
+}
+
+.row-title {
+  font-size: 0.94rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin: 0 0 2px;
+  line-height: 1.25;
+}
+
+.row-meta {
+  font-size: 0.74rem;
+  color: var(--muted);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  margin: 0;
+}
+
+/* Columns: where and who */
+
+.col-where,
+.col-who {
+  min-width: 0;
+}
+
+.row-strong {
+  font-size: 0.86rem;
+  font-weight: 700;
+  margin: 0 0 2px;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+
+.row-quiet {
+  font-size: 0.76rem;
+  color: var(--muted);
+  font-weight: 600;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+/* Column: urgency and status */
+
+.col-flags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-content: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: var(--pill);
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+}
+
+.badge-high {
+  background: var(--danger-tint);
+  color: var(--urgency-high);
+}
+
+.badge-medium {
+  background: var(--amber-tint);
+  color: var(--urgency-medium);
+}
+
+.badge-low {
+  background: #f1f3f2;
+  color: var(--urgency-low);
+}
+
+/* The chip colour follows the card's data-status attribute, which admin.js
+   already updates — so a status change recolours it with no extra JS. */
+.status-chip {
+  display: inline-block;
+  padding: 5px 11px;
+  border-radius: var(--pill);
+  font-size: 0.66rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  white-space: nowrap;
+  background: var(--blue-tint);
+  color: var(--blue);
+}
+
+.report-card[data-status="done"] .status-chip {
+  background: var(--green-tint);
+  color: var(--green-dark);
+}
+
+.report-card[data-status="notdone"] .status-chip {
+  background: var(--danger-tint);
+  color: var(--danger);
+}
+
+/* Column: actions */
+
+.col-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+.status-set {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+
+/* Segmented control: the three states are mutually exclusive, so they read
+   better as one control than as three loose buttons. */
+.status-buttons {
+  display: inline-flex;
+  background: var(--bg-panel);
+  border: 1.5px solid var(--line);
+  border-radius: var(--pill);
+  padding: 3px;
+  gap: 2px;
+}
+
+.status-btn {
+  border: 0;
+  background: none;
+  font-family: inherit;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #666;
+  padding: 7px 13px;
+  border-radius: var(--pill);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease;
+  white-space: nowrap;
+}
+
+.status-btn:hover {
+  background: #fff;
+  color: var(--ink);
+}
+
+.status-btn.is-active {
+  background: var(--green);
+  color: #fff;
+  box-shadow: 0 3px 10px var(--green-glow);
+}
+
+.report-card[data-status="notdone"] .status-btn.is-active {
+  background: var(--danger);
+  box-shadow: 0 3px 10px rgba(192, 57, 43, 0.28);
+}
+
+/* Delete is destructive and used rarely, so it takes an icon rather than a
+   full-width button competing with the status control. */
+.icon-btn {
+  width: 38px;
+  height: 38px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: #fff;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+}
+
+.icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.icon-btn:hover {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+/* Description disclosure, spanning the full row underneath */
+
+.row-details {
+  grid-column: 1 / -1;
+  border-top: 1px solid #f0f2f1;
+  padding-top: 8px;
+  margin-top: 0;
+}
+
+.row-details > summary {
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--green-dark);
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+}
+
+.row-details > summary::-webkit-details-marker {
+  display: none;
+}
+
+.row-details > summary::after {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-right: 2px solid currentColor;
+  border-bottom: 2px solid currentColor;
+  transform: rotate(45deg);
+  transition: transform 0.25s ease;
+}
+
+.row-details[open] > summary::after {
+  transform: rotate(-135deg);
+}
+
+.row-detail-fields {
+  display: grid;
+  grid-template-columns: 130px minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0 4px;
+  font-size: 0.84rem;
+}
+
+.row-detail-fields dt {
+  color: var(--muted);
+  font-weight: 700;
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  padding-top: 2px;
+}
+
+.row-detail-fields dd {
+  margin: 0;
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.row-detail-fields code {
+  font-family: ui-monospace, Consolas, 'SF Mono', monospace;
+  font-size: 0.86em;
+  background: var(--bg-panel);
+  padding: 2px 7px;
+  border-radius: 5px;
+}
+
+.empty-state {
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 60px 24px;
+  text-align: center;
+  color: var(--muted);
+  font-weight: 600;
+  box-shadow: var(--shadow-sm);
+}
+
+
+/* -------------------------------------------------------------------------
+   Delete dialog
+   ---------------------------------------------------------------------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 20, 16, 0.55);
+  backdrop-filter: blur(3px);
+  -webkit-backdrop-filter: blur(3px);
+  z-index: 1500;
+}
+
+.modal {
+  position: fixed;
+  z-index: 1600;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(460px, calc(100vw - 40px));
+  background: #fff;
+  border-radius: var(--radius-md);
+  padding: 32px;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.3);
+}
+
+.modal-title {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin: 0 0 12px;
+}
+
+.modal-body {
+  color: var(--body);
+  line-height: 1.7;
+  font-size: 0.94rem;
+  margin: 0 0 26px;
+}
+
+.modal-body #deleteTarget {
+  font-weight: 800;
+  color: var(--ink);
+}
+
+.modal-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+/* -------------------------------------------------------------------------
+   Toasts
+   ---------------------------------------------------------------------- */
+
+.toast-region {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  z-index: 1700;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-end;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--ink);
+  color: #fff;
+  padding: 14px 22px;
+  border-radius: var(--radius-sm);
+  font-size: 0.88rem;
+  font-weight: 600;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.25);
+  max-width: min(380px, calc(100vw - 40px));
+  animation: toast-in 0.28s ease;
+  border-left: 4px solid var(--muted);
+}
+
+.toast-success {
+  border-left-color: var(--green);
+}
+
+.toast-error {
+  border-left-color: var(--danger);
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* -------------------------------------------------------------------------
+   Sign in / first-run setup
+   ---------------------------------------------------------------------- */
+
+.auth-page {
+  min-height: calc(100vh - var(--nav-h));
+  display: grid;
+  place-items: center;
+  padding: clamp(30px, 6vw, 60px) 20px;
+}
+
+.auth-panel {
+  width: min(460px, 100%);
+  background: #fff;
+  border-radius: var(--radius-lg);
+  padding: clamp(30px, 5vw, 44px);
+  box-shadow: var(--shadow-md);
+}
+
+.auth-panel .icon-circle {
+  margin-inline: auto;
+}
+
+.auth-head {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+.auth-head h1 {
+  font-size: 1.7rem;
+  margin-bottom: 10px;
+}
+
+.auth-head p {
+  color: var(--body);
+  font-size: 0.94rem;
+  line-height: 1.65;
+}
+
+.auth-foot {
+  margin-top: 26px;
+  text-align: center;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+
+.auth-foot a {
+  color: var(--green);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.auth-foot a:hover {
+  text-decoration: underline;
+}
+
+.password-rules {
+  font-size: 0.8rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin-top: 6px;
+}
+
+/* -------------------------------------------------------------------------
+   Responsive
+   ---------------------------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .admin-identity {
+    gap: 10px;
+  }
+
+  .admin-user {
+    display: none;
+  }
+
+  .admin-tag {
+    display: none;
+  }
+}
+
+/* Below this the five columns stop fitting, so the row becomes a block again —
+   but a much tighter one than the original card, because nothing is hidden
+   behind a second disclosure and the labels come back only where a value would
+   otherwise be ambiguous. */
+@media (max-width: 1180px) {
+  .queue-legend {
+    display: none;
+  }
+
+  .report-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 12px 18px;
+    align-items: start;
+  }
+
+  .col-report {
+    grid-column: 1;
+  }
+
+  .col-flags {
+    grid-column: 2;
+    justify-content: flex-end;
+    align-content: flex-start;
+  }
+
+  .col-where,
+  .col-who {
+    grid-column: span 1;
+  }
+
+  .col-who::before,
+  .col-where::before {
+    content: attr(data-label);
+    display: block;
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: var(--muted);
+    margin-bottom: 3px;
+  }
+
+  .col-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+    border-top: 1px solid #f0f2f1;
+    padding-top: 12px;
+  }
+}
+
+@media (max-width: 620px) {
+  .report-card {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 16px 18px;
+  }
+
+  .col-flags {
+    grid-column: 1;
+    justify-content: flex-start;
+  }
+
+  .status-buttons {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .col-actions {
+    flex-wrap: wrap;
+  }
+
+  .status-set {
+    flex: 1 1 100%;
+  }
+
+  .row-detail-fields {
+    grid-template-columns: 1fr;
+    gap: 2px 0;
+  }
+
+  .row-detail-fields dd {
+    margin-bottom: 10px;
+  }
+
+  .toast-region {
+    left: 20px;
+    align-items: stretch;
+  }
+}
