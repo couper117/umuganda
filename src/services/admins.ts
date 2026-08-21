@@ -163,6 +163,125 @@ export async function login(
   return { ok: true, message: 'Signed in.' };
 }
 
+/**
+ * Change the signed-in administrator's own password.
+ *
+ * Deliberate choices, all of them the reason this is a service function rather
+ * than a couple of lines in the route:
+ *
+ *  - The current password is required. A session alone is not enough: an
+ *    unattended browser would otherwise be a permanent account takeover, and
+ *    re-authenticating is the standard defence against that.
+ *  - A wrong current password counts towards the same lockout as a failed
+ *    sign-in, so this form cannot be used as an unthrottled password oracle
+ *    against an account whose session someone has borrowed.
+ *  - The new password goes through the same passwordProblem() rules as the
+ *    setup form, so nothing weaker can enter by this door.
+ *  - On success every other session for this account is invalidated and the
+ *    current one is regenerated. Changing a password is what you do when you
+ *    think someone else has it, and it would be worthless if their session
+ *    kept working.
+ */
+export async function changePassword(
+  req: Request,
+  currentPassword: unknown,
+  newPassword: unknown,
+  confirmPassword: unknown,
+  ip: string,
+): Promise<AuthResult> {
+  const adminId = req.session.adminId;
+  const actor = req.session.adminUsername;
+  if (adminId === undefined || actor === undefined) {
+    return { ok: false, message: 'Your session expired. Please sign in again.' };
+  }
+
+  if (typeof currentPassword !== 'string' || currentPassword === '') {
+    return { ok: false, message: 'Enter your current password.' };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return { ok: false, message: 'The two new passwords do not match.' };
+  }
+
+  const weak = passwordProblem(newPassword);
+  if (weak !== null) {
+    return { ok: false, message: weak };
+  }
+
+  const user = await queryOne<AdminRow>(
+    'SELECT id, username, password_hash, created_at, last_login, failed_attempts, locked_until FROM admin_users WHERE id = ?',
+    [adminId],
+  );
+
+  if (user === undefined) {
+    // The account was deleted while the session was open.
+    return { ok: false, message: 'Your account no longer exists. Please sign in again.' };
+  }
+
+  if (user.locked_until !== null) {
+    const until = new Date(user.locked_until).getTime();
+    if (until > Date.now()) {
+      const minutes = Math.max(1, Math.ceil((until - Date.now()) / 60_000));
+      return { ok: false, message: `Too many failed attempts. Try again in ${minutes} minute(s).` };
+    }
+  }
+
+  if (!(await bcrypt.compare(currentPassword, user.password_hash))) {
+    await registerFailedLogin(user, ip);
+    return { ok: false, message: 'Your current password is not correct.' };
+  }
+
+  if (currentPassword === newPassword) {
+    return { ok: false, message: 'The new password must be different from your current one.' };
+  }
+
+  const hash = await bcrypt.hash(newPassword as string, BCRYPT_ROUNDS);
+
+  try {
+    await execute(
+      'UPDATE admin_users SET password_hash = ?, failed_attempts = 0, locked_until = NULL WHERE id = ?',
+      [hash, user.id],
+    );
+  } catch (err) {
+    logError('Password change failed', err);
+    return { ok: false, message: 'Could not change the password. Please try again.' };
+  }
+
+  await invalidateOtherSessions(req, user.id);
+
+  // Rotate this session too, so the id that existed under the old password is
+  // no longer valid anywhere.
+  await regenerateSession(req);
+  req.session.adminId = user.id;
+  req.session.adminUsername = user.username;
+  req.session.createdAt = Date.now();
+  req.session.lastActivity = Date.now();
+  delete req.session.csrfToken;
+
+  await audit(user.username, 'password_changed', { targetId: user.id, ip });
+  return { ok: true, message: 'Your password has been changed.' };
+}
+
+/**
+ * Drop every stored session belonging to this admin except the current one.
+ *
+ * express-mysql-session keeps the serialised session in a JSON `data` column,
+ * so the rows are matched on the adminId inside it. This is best effort: if the
+ * sweep fails the password has still been changed, which is the part that
+ * matters, so it logs rather than failing the request.
+ */
+async function invalidateOtherSessions(req: Request, adminId: number): Promise<void> {
+  try {
+    await execute('DELETE FROM sessions WHERE session_id <> ? AND JSON_EXTRACT(data, ?) = ?', [
+      req.sessionID,
+      '$.adminId',
+      adminId,
+    ]);
+  } catch (err) {
+    logError('Could not invalidate other sessions after a password change', err);
+  }
+}
+
 /** True when the stored digest was made with a weaker cost factor. */
 function needsRehash(hash: string): boolean {
   const parts = hash.split('$');

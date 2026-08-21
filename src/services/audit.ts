@@ -17,6 +17,7 @@ export type AuditAction =
   | 'login_locked'
   | 'logout'
   | 'admin_created'
+  | 'password_changed'
   | 'status_change'
   | 'report_deleted';
 

@@ -26,6 +26,7 @@ import { asStatus } from '../lib/validate';
 import { currentAdmin, requireAdmin } from '../middleware/auth';
 import { requireCsrf, csrfToken } from '../middleware/csrf';
 import { clientIp, noIndex } from '../middleware/security';
+import { changePassword } from '../services/admins';
 import { audit } from '../services/audit';
 import {
   adminStats,
@@ -149,6 +150,50 @@ adminRouter.post('/admin/status', noIndex, requireAdmin(true), requireCsrf(true)
   } catch (err) {
     logError(`Status update failed for report ${id}`, err);
     res.status(500).json({ success: false, message: 'Could not update the report. Please try again.' });
+  }
+});
+
+/* -------------------------------------------------------------------------
+ * Change your own password
+ *
+ * A page post rather than one of the AJAX endpoints: it rotates the session,
+ * and a full page load is the clearest way to land the visitor back on a page
+ * that is definitely using the new one.
+ * ---------------------------------------------------------------------- */
+
+adminRouter.get('/admin/password', noIndex, requireAdmin(false), (req, res) => {
+  res.render('password', {
+    csrfToken: csrfToken(req),
+    admin: currentAdmin(req),
+    error: null,
+    changed: false,
+    portalHref: `/${DEFAULT_LOCALE}`,
+  });
+});
+
+adminRouter.post('/admin/password', noIndex, requireAdmin(false), requireCsrf(false), async (req, res, next) => {
+  try {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+
+    const result = await changePassword(
+      req,
+      body['current_password'],
+      body['new_password'],
+      body['confirm_password'],
+      clientIp(req),
+    );
+
+    // csrfToken() is read after the call, not before: a successful change
+    // regenerates the session, which issues a fresh token.
+    res.status(result.ok ? 200 : 400).render('password', {
+      csrfToken: csrfToken(req),
+      admin: currentAdmin(req),
+      error: result.ok ? null : result.message,
+      changed: result.ok,
+      portalHref: `/${DEFAULT_LOCALE}`,
+    });
+  } catch (err) {
+    next(err);
   }
 });
 

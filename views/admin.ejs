@@ -37,6 +37,7 @@
 
       <div class="admin-identity">
         <a class="nav-link" href="<%= portalHref %>">View public site</a>
+        <a class="nav-link" href="/admin/password">Change password</a>
         <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
         <form method="POST" action="/logout" class="logout-form">
           <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
