@@ -128,7 +128,7 @@ function formatCategory($cat) {
     <meta name="csrf-token" content="<?= ck_csrf_token() ?>">
     <title>Admin Dashboard • Clean Kigali</title>
     <!-- CSS stylesheet for dashboard -->
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="public/admin.css">
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap" rel="stylesheet">
 </head>

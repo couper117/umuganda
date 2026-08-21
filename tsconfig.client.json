@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    /* Browser scripts. ES2018 keeps this parseable by the older Android
+       WebViews that are the primary target, and there is no bundler in the
+       stack — tsc emits plain scripts that the pages load with <script src>. */
+    "target": "ES2018",
+    "module": "None",
+    "lib": ["ES2018", "DOM", "DOM.Iterable"],
+    "outDir": "public/js",
+    "rootDir": "src/client",
+
+    "strict": true,
+    "noImplicitOverride": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "sourceMap": false,
+    "removeComments": false
+  },
+  "include": ["src/client/**/*.ts"]
+}

@@ -38,104 +38,97 @@ function formatCategory($cat) {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Clean Kigali • Together, We Keep Kigali Clean</title>
     <!-- Custom CSS Stylesheet -->
-    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="public/style.css">
 </head>
 <body>
 
-    <!-- Sticky Navbar -->
-    <nav class="navbar">
+    <a class="skip-link" href="#main">Skip to main content</a>
+
+    <!-- Masthead: who operates the service, plus the language selector -->
+    <div class="masthead">
+        <div class="container masthead-inner">
+            <div>
+                <span class="masthead-operator">Clean Kigali Initiative</span>
+                <span class="masthead-desc">Community sanitation reporting service for the City of Kigali</span>
+            </div>
+            <div class="lang-switcher" role="group" aria-label="Choose language">
+                <a href="index.php" class="lang-btn" lang="rw" hreflang="rw">Ikinyarwanda</a>
+                <a href="indexe.php" class="lang-btn" lang="en" hreflang="en" aria-current="true">English</a>
+                <a href="indexf.php" class="lang-btn" lang="fr" hreflang="fr">Français</a>
+            </div>
+        </div>
+    </div>
+
+    <nav class="navbar" aria-label="Main navigation">
         <div class="container nav-container">
             <a href="#home" class="logo-wrapper" data-scroll>
-                <div class="logo-icon">CK</div>
-                <div class="logo-text">Clean Kigali</div>
+                <span class="logo-mark" aria-hidden="true">CK</span>
+                <span class="logo-text">Clean Kigali</span>
             </a>
-            
-            <!-- Hamburger Toggle Button -->
-            <button class="menu-toggle" id="menuToggle" aria-label="Toggle navigation">
-                <span></span>
-                <span></span>
-                <span></span>
+
+            <button type="button" class="menu-toggle" id="menuToggle" aria-expanded="false" aria-controls="navLinks">
+                <span class="menu-toggle-bars" aria-hidden="true">
+                    <span></span>
+                    <span></span>
+                    <span></span>
+                </span>
+                <span class="menu-toggle-label">Menu</span>
             </button>
-            
-            <!-- Menu overlay -->
+
             <div class="nav-links" id="navLinks">
-                <a href="#home" class="nav-link active" data-scroll>Home</a>
+                <div class="nav-links-head">
+                    <span class="nav-links-title">Menu</span>
+                    <button type="button" class="nav-close" id="navClose" aria-label="Close menu">&times;</button>
+                </div>
+                <a href="#home" class="nav-link" aria-current="true" data-scroll>Home</a>
                 <a href="#tracker-section" class="nav-link" data-scroll>Track My Report</a>
                 <a href="#report-section" class="nav-link" data-scroll>Report an Issue</a>
                 <a href="login.php" class="nav-link" rel="nofollow">Admin Dashboard</a>
-                
-                <!-- Language selection switcher -->
-                <div class="lang-switcher">
-                    <a href="indexe.php" class="lang-btn active">EN</a>
-                    <a href="index.php" class="lang-btn">RW</a>
-                    <a href="indexf.php" class="lang-btn">FR</a>
-                </div>
             </div>
         </div>
     </nav>
 
-    <!-- Hero Section -->
+    <main id="main">
+
     <header class="hero" id="home">
-        <div class="container hero-grid">
-            <div class="hero-content">
-                <div class="hero-badge">
-                    <span class="pulse"></span> Citywide Cleanup Initiative
-                </div>
-                <h1>Together, We Keep <br><span class="gradient">Kigali Clean</span></h1>
-                <p class="hero-text">
-                    Join thousands of citizens in making Kigali the cleanest city. Found overflowing waste bins, blocked sewers, or illegal dumping? Report it instantly or track cleanup progress.
-                </p>
-                <div class="hero-actions">
-                    <a href="#report-section" class="btn btn-primary" data-scroll>
-                        Report an Issue
-                    </a>
-                    <a href="#tracker-section" class="btn btn-secondary" data-scroll>
-                        Track My Report
-                    </a>
-                </div>
-            </div>
-            
-            <!-- Hero Graphic Floating Cards (Hidden on Mobile) -->
-            <div class="hero-graphic">
-                <div class="hero-circle"></div>
-                <div class="hero-card-float">
-                    <div class="float-stat">
-                        <div class="float-stat-icon">🌱</div>
-                        <div class="float-stat-info">
-                            <h4>Eco-Score: 98%</h4>
-                            <p>Kigali Environmental Index</p>
-                        </div>
-                    </div>
-                    <div class="float-stat" style="margin-bottom: 0;">
-                        <div class="float-stat-icon">🤝</div>
-                        <div class="float-stat-info">
-                            <h4>Umuganda Digitalized</h4>
-                            <p>Collaborative city reporting</p>
-                        </div>
-                    </div>
-                </div>
+        <div class="container">
+            <p class="hero-eyebrow">Citywide cleanup initiative</p>
+            <h1>Together, We Keep Kigali Clean</h1>
+            <p class="hero-lead">
+                Join thousands of citizens in making Kigali the cleanest city. Found overflowing waste bins, blocked sewers, or illegal dumping? Report it instantly or track cleanup progress.
+            </p>
+            <div class="hero-actions">
+                <a href="#report-section" class="btn btn-primary" data-scroll>
+                    Report an Issue
+                </a>
+                <a href="#tracker-section" class="btn btn-secondary" data-scroll>
+                    Track My Report
+                </a>
             </div>
         </div>
     </header>
 
-    <!-- Stats Banner -->
-    <section class="stats-section">
-        <div class="container stats-grid">
-            <div class="stat-card">
-                <div class="stat-number"><?= $totalReports ?></div>
-                <div class="stat-label">Total Reports</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color: var(--urgency-medium);"><?= $pendingReports ?></div>
-                <div class="stat-label">In Progress</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color: var(--primary);"><?= $resolvedReports ?></div>
-                <div class="stat-label">Resolved</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-number" style="color: var(--secondary);"><?= e($resolutionRate) ?></div>
-                <div class="stat-label">Resolved Rate</div>
+    <!-- Service statistics. Real counts from lib/portal.php. -->
+    <section class="stats-section" aria-labelledby="stats-heading">
+        <div class="container">
+            <h2 id="stats-heading" class="visually-hidden">Service statistics</h2>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-number"><?= $totalReports ?></div>
+                    <div class="stat-label">Total Reports</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"><?= $pendingReports ?></div>
+                    <div class="stat-label">In Progress</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"><?= $resolvedReports ?></div>
+                    <div class="stat-label">Resolved</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-number"><?= e($resolutionRate) ?></div>
+                    <div class="stat-label">Resolved Rate</div>
+                </div>
             </div>
         </div>
     </section>
@@ -343,12 +336,14 @@ function formatCategory($cat) {
         </div>
     </section>
 
-    <!-- Footer -->
+    </main>
+
     <footer class="site-footer">
         <div class="container footer-grid">
             <div class="footer-logo">
                 <h3>Clean Kigali</h3>
-                <p>Digitalizing city maintenance and waste control. Kigali is our home, let's keep it healthy and beautiful together.</p>
+                <p class="footer-operator">This service is operated by the Clean Kigali Initiative.</p>
+                <p>A reporting service for sanitation and waste issues in the City of Kigali.</p>
             </div>
             <div class="footer-links">
                 <h4>Resources</h4>
@@ -368,7 +363,8 @@ function formatCategory($cat) {
             </div>
         </div>
         <div class="container footer-bottom">
-            <p>&copy; <?= date('Y') ?> Clean Kigali Initiative. Built for Kigali with Love.</p>
+            <p>&copy; <?= date('Y') ?> Clean Kigali Initiative</p>
+            <p class="footer-note">Information submitted in a report is used only to resolve the sanitation issue reported.</p>
         </div>
     </footer>
 

@@ -53,7 +53,7 @@ if (!$locked_reason && $_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>First-Time Setup • Clean Kigali Admin</title>
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="public/admin.css">
     <style>
         .auth-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 24px 16px; }
         .auth-card { width: 100%; max-width: 460px; background: #fff; border-radius: var(--radius-lg); box-shadow: var(--shadow-lg); padding: 32px 26px; }

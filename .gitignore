@@ -1,5 +1,11 @@
 # Local credentials — never commit
 config.local.php
+.env
+
+# Node / TypeScript build output
+node_modules/
+dist/
+public/js/
 
 # Runtime logs
 logs/*.log
@@ -9,3 +15,6 @@ logs/*.log
 .idea/
 Thumbs.db
 .DS_Store
+
+# Reference material, not part of this project
+nga-tourism-project-main/

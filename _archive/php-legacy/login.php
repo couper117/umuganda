@@ -54,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="robots" content="noindex, nofollow">
     <title>Sign In • Clean Kigali Admin</title>
-    <link rel="stylesheet" href="admin.css">
+    <link rel="stylesheet" href="public/admin.css">
     <style>
         .auth-wrap {
             min-height: 100vh;

@@ -18,31 +18,58 @@ document.addEventListener('DOMContentLoaded', () => {
     // Get page language
     const lang = document.documentElement.lang || 'rw';
 
-    // 1. Mobile Menu Drawer Toggle
+    // 1. Mobile Menu Drawer
+    //    aria-expanded is the state a screen reader reads, so it is kept in
+    //    step with the class rather than left on the button as decoration.
     const menuToggle = document.getElementById('menuToggle');
     const navLinks = document.getElementById('navLinks');
+    const navClose = document.getElementById('navClose');
+
+    function openMenu() {
+        navLinks.classList.add('active');
+        menuToggle.setAttribute('aria-expanded', 'true');
+        // Move focus into the drawer so keyboard and screen reader users are
+        // not left behind at the toggle.
+        if (navClose) navClose.focus();
+    }
+
+    function closeMenu(returnFocus) {
+        navLinks.classList.remove('active');
+        menuToggle.setAttribute('aria-expanded', 'false');
+        if (returnFocus) menuToggle.focus();
+    }
+
     if (menuToggle && navLinks) {
         menuToggle.addEventListener('click', (e) => {
             e.stopPropagation();
-            menuToggle.classList.toggle('active');
-            navLinks.classList.toggle('active');
-        });
-
-        // Close menu when clicking outside
-        document.addEventListener('click', (e) => {
-            if (navLinks.classList.contains('active') && !navLinks.contains(e.target) && e.target !== menuToggle) {
-                menuToggle.classList.remove('active');
-                navLinks.classList.remove('active');
+            if (navLinks.classList.contains('active')) {
+                closeMenu(false);
+            } else {
+                openMenu();
             }
         });
 
-        // Close menu when clicking a nav link
-        const links = navLinks.querySelectorAll('.nav-link');
-        links.forEach(link => {
-            link.addEventListener('click', () => {
-                menuToggle.classList.remove('active');
-                navLinks.classList.remove('active');
-            });
+        if (navClose) {
+            navClose.addEventListener('click', () => closeMenu(true));
+        }
+
+        // Escape closes the drawer, as it does for any dismissible overlay.
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && navLinks.classList.contains('active')) {
+                closeMenu(true);
+            }
+        });
+
+        // Close when clicking outside
+        document.addEventListener('click', (e) => {
+            if (navLinks.classList.contains('active') && !navLinks.contains(e.target) && !menuToggle.contains(e.target)) {
+                closeMenu(false);
+            }
+        });
+
+        // Close when following a nav link
+        navLinks.querySelectorAll('.nav-link').forEach(link => {
+            link.addEventListener('click', () => closeMenu(false));
         });
     }
 
@@ -373,21 +400,27 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // 10. Smooth Scroll to sections
-    const scrollLinks = document.querySelectorAll('[data-scroll]');
-    scrollLinks.forEach(link => {
+    // 10. Scroll to sections
+    //     Smooth scrolling is motion, so it is only used when the visitor has
+    //     not asked for reduced motion. The navbar offset is measured rather
+    //     than hardcoded, so it stays correct if the header height changes.
+    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    document.querySelectorAll('[data-scroll]').forEach(link => {
         link.addEventListener('click', (e) => {
-            e.preventDefault();
             const targetId = link.getAttribute('href');
             const targetEl = document.querySelector(targetId);
-            if (targetEl) {
-                const navHeight = 70; // Sticky navbar height
-                const offsetPosition = targetEl.getBoundingClientRect().top + window.scrollY - navHeight;
-                window.scrollTo({
-                    top: offsetPosition,
-                    behavior: 'smooth'
-                });
-            }
+            if (!targetEl) return; // Let the browser handle it
+
+            e.preventDefault();
+            const navbar = document.querySelector('.navbar');
+            const navHeight = navbar ? navbar.offsetHeight : 0;
+            const offsetPosition = targetEl.getBoundingClientRect().top + window.scrollY - navHeight;
+
+            window.scrollTo({
+                top: offsetPosition,
+                behavior: prefersReducedMotion ? 'auto' : 'smooth'
+            });
         });
     });
 });
