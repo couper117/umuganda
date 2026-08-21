@@ -1,130 +1,180 @@
 # Clean Kigali — Security Notes
 
-Hardening pass completed 2026-08-09. This file covers what changed, how to
-deploy it safely, and what is still outstanding.
+Stack: Node + Express + EJS + mysql2 (TypeScript). Ported from PHP on
+2026-08-17; the original hardening pass was 2026-08-09.
+
+This file describes the controls that are in place, how they were verified, and
+what is still outstanding before this should face the public.
 
 ---
 
 ## First run
 
-1. Visit `setup_admin.php` and create your administrator account.
-   Username: 3–50 chars. Password: 12+ chars with letters and numbers.
-2. Confirm you can sign in at `login.php`.
-3. **Delete `setup_admin.php` from the server.** It disables itself once an
-   account exists, but removing it is one less thing to reason about.
-
-On a public deployment, set a setup token *before* uploading the code, so
-nobody can reach the setup page in the gap between deploy and your first
-visit. Create `config.local.php`:
-
-```php
-<?php return [
-    'CK_SETUP_TOKEN' => 'some-long-random-string',
-    'DB_PASS'        => 'your-real-mysql-password',
-    'APP_ENV'        => 'production',
-];
+```bash
+cp .env.example .env          # then edit it
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+                              # paste into SESSION_SECRET
+npm install
+npm run build                 # compiles the browser scripts into public/js/
+npm run dev                   # or: npm start, after a build
 ```
 
-Then visit `setup_admin.php?token=some-long-random-string`.
+1. Visit `/setup` and create your administrator account.
+   Username 3–50 chars; password 12+ chars with letters and numbers.
+2. Confirm you can sign in at `/login`.
+3. Set `SETUP_TOKEN` in `.env`, or remove the `/setup` route. It disables itself
+   once an account exists, but closing it off entirely is one less thing to
+   reason about.
+
+On a public deployment, set `SETUP_TOKEN` **before** deploying, so nobody can
+reach the setup page in the gap between deploy and your first visit. Then visit
+`/setup?token=YOUR_TOKEN`.
 
 ---
 
-## What changed
+## Controls in place
 
-### Authentication (was: none)
-`admin.php` was publicly reachable. Anyone could read reporter names, phone
-numbers, email addresses and IP addresses, and delete any report.
+Each item below was exercised against the running app, not just written.
 
-- `admin.php` now calls `ck_require_admin()` before anything else. Browsers are
-  redirected to `login.php`; AJAX callers get `401`.
-- Passwords are stored with `password_hash()` (bcrypt), never plaintext.
-- 5 failed attempts locks the account for 15 minutes; login attempts are also
-  rate-limited per IP.
-- Login responses are identical for a wrong password and an unknown username,
-  and unknown users still pay the hash-comparison cost, so the form cannot be
-  used to discover valid usernames.
-- Sessions are HttpOnly, SameSite=Lax, Secure over HTTPS, with strict mode on.
-  The session id is regenerated on login (blocks session fixation). Sessions
-  expire after 30 minutes idle or 12 hours absolute.
+### Authentication — `src/services/admins.ts`, `src/middleware/auth.ts`
 
-### CSRF (was: none)
-The status-update and delete endpoints accepted any POST. A signed-in admin
-visiting a hostile page could be made to delete reports silently.
+- The dashboard is gated by `requireAdmin` declared **per route**. The PHP
+  version dispatched three operations out of one file behind a single `if`; the
+  routes are separate now, so an endpoint cannot be added later that skips the
+  guard by accident.
+- Passwords are bcrypt digests (cost 12), never plaintext.
+- 5 failed attempts locks the account for 15 minutes. Verified: attempts 1–5
+  return the generic message, the 6th returns `Too many failed attempts. Try
+  again in 15 minute(s).` and `locked_until` is set.
+- Login attempts are **also** rate limited per IP (15 per 15 minutes), on top of
+  the per-account lockout. Both layers were observed firing independently.
+- A wrong password and an unknown username return the identical message
+  (`Incorrect username or password.`), and an unknown username still pays the
+  bcrypt comparison cost against a dummy hash. Measured: 879 ms vs 918 ms
+  average over three runs each — no usable timing signal.
+- `?next=` is reduced to a same-origin path. Verified: `https://evil.example.com/x`
+  and `//evil.example.com` both rewrite to `/admin`.
 
-- All state-changing requests require a token, checked with `hash_equals()`.
-- `admin.js` sends it as both a form field and an `X-CSRF-Token` header.
-- The public report form and sign-out both carry tokens too.
+### Sessions — `src/middleware/session.ts`
+
+- `HttpOnly`, `SameSite=Lax`, `Path=/`, and `Secure` when
+  `FORCE_SECURE_COOKIE=true`. Verified on a live `Set-Cookie`.
+- The session id is **regenerated on login**, which blocks session fixation.
+  Verified: the cookie value differs before and after signing in.
+- 30 minutes idle, 12 hours absolute. Both bounds are enforced server-side
+  against timestamps in the session, not only by cookie expiry.
+- Sessions live in MySQL (`sessions` table), not process memory. Express's
+  default `MemoryStore` is explicitly not for production, and an in-memory store
+  would also sign everyone out on every deploy.
+
+### CSRF — `src/middleware/csrf.ts`
+
+- Every state-changing request requires a token, compared with
+  `crypto.timingSafeEqual`. Accepted from the form body or the `X-CSRF-Token`
+  header.
+- Written by hand rather than taken from a package: `csurf`, the usual choice,
+  has been deprecated and unmaintained since 2022.
+- Verified: submitting a report, changing a status and deleting a report all
+  return **419** without a token. Sign-out is a POST and carries one too.
 
 ### Cross-site scripting
-Two live paths, both fixed:
 
-- `app.js` rendered tracker results into `innerHTML` with raw database values.
-  A report submitted with `<img src=x onerror=...>` as its location executed
-  for anyone who tracked that reference. All interpolated values now go
-  through `escapeHtml()`.
-- `admin.js` rendered toast messages via `innerHTML`, and those messages
-  carried server text. Now uses `textContent`.
-- All PHP output uses `e()`, which applies `ENT_QUOTES` — the previous
-  `htmlspecialchars()` calls left single quotes unescaped on PHP < 8.1.
+- EJS escapes every `<%= %>` interpolation by default. This replaces the `e()`
+  helper the PHP templates had to remember to call at each site.
+- The tracker result is built with `createElement` / `textContent` rather than an
+  `innerHTML` template. The PHP version funnelled values through an
+  `escapeHtml()` helper — which worked, but left the whole class of bug one
+  forgotten call away.
+- Verified end to end: a report submitted with
+  `<img src=x onerror=alert(1)><script>alert(2)</script>` as its location renders
+  as escaped entities server-side, and in Chrome (with `alert` instrumented)
+  produced **0 dialogs, 0 injected `<img>`, 0 injected `<script>`** — the payload
+  appears as literal text.
+- Dashboard toasts use `textContent`.
 
-### Input validation (was: none server-side)
+### Input validation — `src/lib/validate.ts`
+
 - `category`, `urgency` and `status` are checked against fixed lists in
-  `config.php`. A crafted POST can no longer write arbitrary values — the
-  status field previously accepted anything.
-- Free-text fields are trimmed, stripped of control characters, and capped to
-  their column widths, so MySQL never silently truncates.
+  `src/config.ts`. Verified: `category=not-a-real-category` → 400,
+  `status=bogus` → 400.
+- Free text is trimmed, stripped of control characters, and capped in code
+  points to the column width, so MySQL never silently truncates. Verified: a
+  250-character location and sector store as exactly 100 and 50.
 - Tracker references are parsed with a strict `CK-<digits>` pattern.
+- Types carry the guarantee onward: the compiler will not let an unvalidated
+  string reach a query that expects a `Category`.
+
+### Rate limiting — `src/middleware/rateLimit.ts`
+
+| Action            | Limit             |
+|-------------------|-------------------|
+| Tracker lookups   | 30 per 10 minutes |
+| Report submits    | 5 per hour        |
+| Login attempts    | 15 per 15 minutes |
+
+- Still database-backed on the existing `rate_limits` table, so counters survive
+  a restart and are shared between processes. An in-memory limiter resets on
+  every deploy, which is exactly when abuse is easiest.
+- An attempt is only **recorded** once the action succeeds, so a visitor who
+  mistypes a field does not burn their hourly quota on validation errors.
+  Verified: four POSTs (three rejected, one valid) left exactly one `submit` row.
+- `X-Forwarded-For` is only honoured when `TRUST_PROXY=true`. Verified with
+  `TRUST_PROXY=false`: seven submissions carrying seven different spoofed
+  `X-Forwarded-For` values all keyed on the real address, and the 6th and 7th
+  were refused with 429.
 
 ### Information disclosure
-- Removed `Admin Access Credentials: root DB` from the public footer of all
-  three language pages.
-- MySQL errors no longer reach the browser. They go to `logs/app-error.log`;
-  users see a generic message. This applies to connection failures, insert
-  failures, and both admin endpoints.
-- Public pages link to `login.php` rather than `admin.php`, marked `nofollow`,
-  and admin pages carry `noindex, nofollow`.
-- The public feed and tracker API select only non-identifying columns —
-  reporter name, contact and IP never leave the server.
 
-### Rate limiting (was: none)
-References are sequential, so `CK-1`, `CK-2`, `CK-3`… was a complete database
-scrape. Limits are enforced per IP in the `rate_limits` table:
+- Public reads select only non-identifying columns — reporter name, contact and
+  IP are absent from the result set by construction, not filtered out in a
+  template. Verified against the tracker JSON.
+- MySQL and runtime errors go to `logs/app-error.log`; the visitor gets a
+  generic message. Production hides stack traces entirely.
+- Public pages link to `/login` with `rel="nofollow"`, never to `/admin`.
+  Verified: 0 direct `/admin` links in public output.
+- No credentials in public output. Verified: 0 occurrences of `root`,
+  `umuganda`, `DB_PASS`, `password` or `mysql`.
+- The dashboard and auth pages send `X-Robots-Tag: noindex, nofollow` and
+  `Cache-Control: no-store` — the latter is new, because those pages render
+  names, phone numbers and IPs that should not sit in a shared or browser cache.
+- `X-Powered-By` is disabled.
 
-| Action           | Limit                |
-|------------------|----------------------|
-| Tracker lookups  | 30 per 10 minutes    |
-| Report submits   | 5 per hour           |
-| Login attempts   | 15 per 15 minutes    |
+### Server configuration — `src/middleware/security.ts`
 
-`X-Forwarded-For` is only trusted from a known proxy — otherwise the header is
-spoofable and the limiter becomes useless.
+This file is what replaced `.htaccess`. Headers verified on a live response,
+including on static assets:
 
-### Credentials and configuration
-- Credentials moved out of `db_connection.php` into `config.php`, which reads
-  environment variables first, then `config.local.php`, then defaults.
-- `config.local.php` is blocked by `.htaccess` and listed in `.gitignore`.
+`Content-Security-Policy`, `X-Frame-Options: DENY`, `X-Content-Type-Options:
+nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`,
+`Permissions-Policy`, plus the extras helmet adds
+(`Cross-Origin-Opener-Policy`, `Cross-Origin-Resource-Policy`,
+`X-Permitted-Cross-Domain-Policies`, `Origin-Agent-Cluster`).
 
-### Server configuration
-- `.htaccess` blocks `config*.php`, `lib/`, `logs/`, `_archive/`, dotfiles,
-  and `.sql`/`.log`/`.docx`/`.bak` files; disables directory listing; and sets
-  CSP, `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` and
-  `Permissions-Policy`.
-- `lib/portal.php` also refuses direct requests in code, so the protection
-  holds even where `AllowOverride` is off.
+HSTS is sent only when `FORCE_SECURE_COOKIE=true`; asserting it over plain http
+is meaningless.
 
-### Audit trail
-Status changes, deletions, logins, failed logins and lockouts are recorded in
-`audit_log` with actor, timestamp and IP.
+The CSP no longer grants `fonts.googleapis.com` or `fonts.gstatic.com`: the
+redesign dropped web fonts for the system stack.
 
-### Also fixed along the way
-- Public statistics were partly fabricated: the page fell back to hard-coded
-  figures (124 total / 92 resolved / 32 pending) whenever the query returned
-  nothing, and the "resolution rate" was a fixed `94.3%` that was never
-  computed. Both now reflect real counts; the rate shows `—` with no data.
-- `save_report.php` was broken and unsafe — it included a nonexistent file
-  (`dbconnection.php`) and inserted into a column that is not in the schema.
-  Moved to `_archive/`.
-- Added indexes on `reports.status`, `reports.urgency` and `reports.time`.
+**File protection is now structural rather than a deny list.** Only `public/` is
+on a served path, so there is no equivalent of "someone requests config.php".
+Verified 404 for `/.env`, `/src/config.ts`, `/src/server.ts`, `/package.json`,
+`/views/layout.ejs`, `/logs/app-error.log`, `/reports.sql`, `/SECURITY.md`,
+`/config.php`, `/lib/auth.php`, `/index.php`, and a `../` traversal attempt.
+
+### Audit trail — `src/services/audit.ts`
+
+Status changes, deletions, logins, failed logins, lockouts and account creation
+are recorded in `audit_log` with actor, timestamp, target and IP. Verified after
+each destructive action in testing.
+
+### Accessibility fixes that were also security-adjacent
+
+The category and urgency radios were `display: none` with selection driven by a
+JS class, which made them unreachable by keyboard **and** meant `required` fired
+native validation against an unfocusable field, stalling the form. They are real
+radios now, visually hidden but focusable, with selection signalled by a
+checkmark, a border-weight change and a fill — never colour alone.
 
 ---
 
@@ -133,46 +183,63 @@ Status changes, deletions, logins, failed logins and lockouts are recorded in
 **Required:**
 
 1. **Set a MySQL password.** The app still connects as `root` with an empty
-   password, which is the XAMPP default. Create a dedicated user with only
-   `SELECT, INSERT, UPDATE, DELETE` on the `umuganda` database and put its
-   credentials in `config.local.php`. No application should run as `root`.
-2. **Serve over HTTPS.** Session cookies only get the `Secure` flag over TLS,
-   and without it credentials cross the network in the clear. Then uncomment
-   the HSTS line in `.htaccess`.
-3. **Delete `setup_admin.php`** once your account exists.
-4. **Confirm `AllowOverride All`** is set for the document root, or the
-   `.htaccess` rules are silently ignored.
-5. **Set `display_errors = Off`** in the production `php.ini`.
+   password, the XAMPP default. Create a dedicated user with only
+   `SELECT, INSERT, UPDATE, DELETE` on `umuganda` and put its credentials in
+   `.env`. No application should run as `root`.
+2. **Set `SESSION_SECRET`.** The server refuses to start without it when
+   `NODE_ENV=production`. In development an ephemeral one is generated, so a
+   restart signs everyone out — deliberate, so it is never silently weak.
+3. **Serve over HTTPS**, then set `FORCE_SECURE_COOKIE=true` so the session
+   cookie gets `Secure` and HSTS is sent. Without TLS, credentials cross the
+   network in the clear.
+4. **Set `NODE_ENV=production`**, which stops error detail reaching responses.
+5. **Set `SETUP_TOKEN`** or remove the `/setup` route.
+6. **If you put this behind a reverse proxy**, set `TRUST_PROXY=true` — otherwise
+   every request appears to come from the proxy and the rate limiter keys on one
+   address for the whole internet. Only set it when a proxy is genuinely in
+   front, or the limiter becomes trivially bypassable.
 
 **Recommended:**
 
-6. **Sequential references still leak information.** Rate limiting makes bulk
-   scraping impractical but does not stop a targeted guess — `CK-42` is a valid
-   reference someone can simply try. Adding a random token column and tracking
-   on `CK-<id>-<token>` would close this properly.
-7. **Reporter contact details are stored indefinitely** alongside IP addresses.
-   Decide on a retention period and delete beyond it. If Rwanda's data
-   protection law applies to this deployment, this likely needs a documented
-   policy and a privacy notice on the form.
-8. **Add pagination to the dashboard.** It currently loads every report in one
-   query; that degrades as the table grows.
-9. **Back up the database** on a schedule, and test a restore.
+7. **Sequential references still leak information.** Rate limiting makes bulk
+   scraping impractical but does not stop a targeted guess — `CK-42` is a
+   reference someone can simply try. A random token column, tracked as
+   `CK-<id>-<token>`, would close this properly.
+8. **Reporter contact details are stored indefinitely** alongside IP addresses.
+   Decide a retention period and delete beyond it. If Rwanda's data protection
+   law applies here, this likely needs a documented policy and a privacy notice
+   on the form. (A short notice now sits beside the contact fields; that is not
+   the same as a policy.)
+9. **Add pagination to the dashboard.** It still loads every report in one query.
+10. **Drop `'unsafe-inline'` from `style-src`.** It is no longer needed by the
+    portal templates — no inline `style` attributes remain — but is kept until
+    the setting has been confirmed against every page.
+11. **Back up the database** on a schedule, and test a restore.
 
 ---
 
 ## Reference
 
-| File | Purpose |
+| Path | Purpose |
 |------|---------|
-| `config.php` | Settings, limits, controlled vocabularies |
-| `config.local.php` | Your credentials (create it; never commit it) |
-| `lib/security.php` | Sessions, CSRF, rate limiting, validation, escaping |
-| `lib/auth.php` | Login, lockout, password hashing, access gate |
-| `lib/portal.php` | Shared logic for the three public language pages |
+| `.env` | Your configuration. Gitignored; never commit it. |
+| `src/config.ts` | Settings, limits, controlled vocabularies |
+| `src/db.ts` | Pool, schema bootstrap, error logging |
+| `src/middleware/security.ts` | Headers, CSP, client IP — replaces `.htaccess` |
+| `src/middleware/session.ts` | Hardened sessions |
+| `src/middleware/csrf.ts` | Token issue and verification |
+| `src/middleware/rateLimit.ts` | Per-IP sliding windows |
+| `src/middleware/auth.ts` | Access gate, open-redirect guard |
+| `src/lib/validate.ts` | All input validation |
+| `src/services/` | Queries: reports, admins, audit |
+| `src/routes/` | portal, auth, admin |
+| `src/i18n/` | The three language string tables |
+| `views/` | EJS templates (never web-served) |
+| `public/` | The only web-served directory |
 | `logs/app-error.log` | Server-side error log |
-| `_archive/` | Retired files, with notes on why each was removed |
+| `_archive/php-legacy/` | The retired PHP app, with a mapping of what went where |
 
-The three language pages previously held three copies of the same PHP logic,
-which had already drifted apart. Shared behaviour now lives in
-`lib/portal.php`, so a fix applies to all three at once; each page defines only
-its own strings.
+The three language pages were previously three near-identical copies that had
+already drifted apart. There is now one template plus three string tables, and
+because each table must satisfy the `Strings` interface, a missing string is a
+compile error rather than a blank spot on a page nobody checked.
