@@ -361,30 +361,38 @@ a {
   overflow: hidden;
 }
 
+/* Photograph, self-hosted from /img so the img-src 'self' CSP is untouched.
+   A slow zoom gives the hero some life; it is the one piece of motion on the
+   page and it stops entirely under prefers-reduced-motion. */
 .hero-bg {
   position: absolute;
   inset: 0;
-  background: linear-gradient(135deg, #0a3f26 0%, #00a859 55%, #056b39 100%);
+  background: #0a3f26 url('/img/hero-hills.jpg') center / cover no-repeat;
   z-index: 1;
+  animation: hero-zoom 24s ease-in-out infinite alternate;
 }
 
-/* Faint topographic suggestion — hills, without an image request the CSP
-   would have to allow. */
-.hero-bg::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background-image: radial-gradient(circle at 18% 82%, rgba(255, 255, 255, 0.14) 0 2px, transparent 2px),
-    radial-gradient(circle at 72% 24%, rgba(255, 255, 255, 0.1) 0 2px, transparent 2px);
-  background-size: 90px 90px, 130px 130px;
-  opacity: 0.7;
+@keyframes hero-zoom {
+  from {
+    transform: scale(1);
+  }
+  to {
+    transform: scale(1.09);
+  }
 }
 
+/* The brand green has to survive the photograph, so the overlay tints rather
+   than merely darkens: a green multiply pass, then a vignette for text
+   contrast. Without this the headline sits on an unpredictable sky. */
 .hero-overlay {
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 40%, rgba(0, 0, 0, 0.05) 0%, rgba(0, 0, 0, 0.42) 100%);
   z-index: 2;
+  background:
+    /* Darkest directly behind the headline, easing off at the edges so the
+       photograph is still visible where no text sits on it. */
+    radial-gradient(ellipse 70% 60% at 50% 46%, rgba(4, 32, 20, 0.72) 0%, rgba(4, 32, 20, 0.34) 100%),
+    linear-gradient(135deg, rgba(8, 56, 34, 0.6) 0%, rgba(0, 120, 64, 0.28) 55%, rgba(5, 80, 45, 0.6) 100%);
 }
 
 .hero-content {
@@ -727,17 +735,21 @@ a {
 
 .cta-band {
   position: relative;
-  background: var(--footer);
+  background: var(--footer) url('/img/bins.jpg') center / cover no-repeat;
   color: #fff;
   text-align: center;
   overflow: hidden;
 }
 
+/* Heavy enough that the photograph reads as texture behind the words rather
+   than competing with them. */
 .cta-band::before {
   content: '';
   position: absolute;
   inset: 0;
-  background: radial-gradient(circle at 50% 120%, rgba(0, 168, 89, 0.45) 0%, transparent 60%);
+  background:
+    radial-gradient(circle at 50% 120%, rgba(0, 168, 89, 0.5) 0%, transparent 62%),
+    linear-gradient(180deg, rgba(15, 15, 15, 0.9) 0%, rgba(15, 15, 15, 0.82) 100%);
 }
 
 .cta-band .container {
@@ -1559,4 +1571,33 @@ fieldset {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Selects, styled to match the text inputs. The arrow is an inline data URI
+   rather than an image request, so img-src stays untouched. */
+.field select,
+select.field-input {
+  width: 100%;
+  padding: 15px 42px 15px 16px;
+  border: 1.5px solid #eee;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: 0.98rem;
+  color: var(--ink);
+  background-color: #fff;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  background-size: 18px 18px;
+  appearance: none;
+  -webkit-appearance: none;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.25s ease, box-shadow 0.25s ease;
+}
+
+.field select:focus,
+select.field-input:focus {
+  border-color: var(--green);
+  box-shadow: 0 0 0 4px rgba(0, 168, 89, 0.1);
 }
