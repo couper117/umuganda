@@ -40,14 +40,18 @@ interface HotspotRow extends RowDataPacket, Hotspot {}
  */
 export async function createReport(report: ValidatedReport, ip: string): Promise<number> {
   const result = await execute(
-    `INSERT INTO reports (time, category, urgency, location, sector, details, name, contact, ip, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    `INSERT INTO reports
+       (time, category, urgency, location, district, sector, cell, village, details, name, contact, ip, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
     [
       new Date(),
       report.category,
       report.urgency,
       report.location,
+      report.district,
       report.sector,
+      report.cell,
+      report.village,
       report.details,
       report.name,
       report.contact,
@@ -65,7 +69,7 @@ export async function createReport(report: ValidatedReport, ip: string): Promise
  */
 export async function findPublicReport(id: number): Promise<PublicReport | undefined> {
   return queryOne<PublicReportRow>(
-    'SELECT id, time, category, urgency, location, sector, details, status FROM reports WHERE id = ?',
+    'SELECT id, time, category, urgency, location, district, sector, cell, village, details, status FROM reports WHERE id = ?',
     [id],
   );
 }
@@ -100,22 +104,44 @@ export async function recentReports(limit = 8): Promise<PublicReport[]> {
   // a prepared parameter in LIMIT on all versions.
   const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 50);
   return query<PublicReportRow>(
-    `SELECT id, time, category, urgency, location, sector, details, status
+    `SELECT id, time, category, urgency, location, district, sector, cell, village, details, status
      FROM reports
      ORDER BY time DESC
      LIMIT ${safeLimit}`,
   );
 }
 
-/** Dashboard counters. */
-export async function adminStats(): Promise<AdminStats> {
+/**
+ * How much of the queue an account may see.
+ *
+ * `null` means everything, which is what a superadmin gets. A cell leader gets
+ * their own cell and nothing else.
+ *
+ * Every dashboard query takes this and turns it into a WHERE clause here, in
+ * the service layer, rather than filtering in a route or a template. That is
+ * deliberate: a filter applied at the edge is one forgotten call away from
+ * leaking, whereas a report outside the scope is never in the result set to
+ * begin with — the same rule the public queries follow for reporter details.
+ */
+export type Scope = { cell: string } | null;
+
+/** SQL fragment and parameters for a scope. */
+function scopeClause(scope: Scope): { where: string; params: string[] } {
+  if (scope === null) return { where: '', params: [] };
+  return { where: 'WHERE cell = ?', params: [scope.cell] };
+}
+
+/** Dashboard counters, within the caller's scope. */
+export async function adminStats(scope: Scope = null): Promise<AdminStats> {
+  const { where, params } = scopeClause(scope);
   const row = await queryOne<AdminStatsRow>(
     `SELECT
        COUNT(*) AS total,
        SUM(CASE WHEN status = 'pending' OR status = '' OR status IS NULL OR status = 'notdone' THEN 1 ELSE 0 END) AS pending,
        SUM(CASE WHEN status = 'done' THEN 1 ELSE 0 END) AS done,
        SUM(CASE WHEN urgency = 'high' THEN 1 ELSE 0 END) AS high
-     FROM reports`,
+     FROM reports ${where}`,
+    params,
   );
 
   return {
@@ -126,27 +152,30 @@ export async function adminStats(): Promise<AdminStats> {
   };
 }
 
-/** Most-reported locations, for the dashboard hotspots panel. */
-export async function topLocations(limit = 3): Promise<Hotspot[]> {
+/** Most-reported locations, within the caller's scope. */
+export async function topLocations(limit = 3, scope: Scope = null): Promise<Hotspot[]> {
   const safeLimit = Math.min(Math.max(Math.trunc(limit), 1), 20);
+  const { where, params } = scopeClause(scope);
   return query<HotspotRow>(
     `SELECT location, COUNT(*) AS count
-     FROM reports
+     FROM reports ${where}
      GROUP BY location
      ORDER BY count DESC
      LIMIT ${safeLimit}`,
+    params,
   );
 }
 
 /**
- * Every report for the dashboard, high urgency first then newest.
+ * Reports for the dashboard, high urgency first then newest.
  *
  * This is the full row including reporter details — it is only ever called
- * behind requireAdmin().
+ * behind requireAdmin(), and only ever for the caller's own scope.
  */
-export async function allReportsForAdmin(): Promise<ReportRow[]> {
+export async function allReportsForAdmin(scope: Scope = null): Promise<ReportRow[]> {
+  const { where, params } = scopeClause(scope);
   return query<FullReportRow>(
-    `SELECT * FROM reports
+    `SELECT * FROM reports ${where}
      ORDER BY
        CASE urgency
          WHEN 'high' THEN 1
@@ -155,12 +184,24 @@ export async function allReportsForAdmin(): Promise<ReportRow[]> {
          ELSE 4
        END,
        time DESC`,
+    params,
   );
 }
 
-/** Set a report's status. Returns false when no row matched. */
-export async function updateReportStatus(id: number, status: Status): Promise<boolean> {
-  const result = await execute('UPDATE reports SET status = ? WHERE id = ?', [status, id]);
+/**
+ * Set a report's status, within the caller's scope.
+ *
+ * The scope is part of the WHERE clause rather than a separate check, so a
+ * leader posting another cell's report id simply matches no row and gets the
+ * same "no longer exists" answer as a deleted report. There is no branch that
+ * could be reordered into a leak, and the response does not confirm whether
+ * the id exists elsewhere.
+ */
+export async function updateReportStatus(id: number, status: Status, scope: Scope = null): Promise<boolean> {
+  const result =
+    scope === null
+      ? await execute('UPDATE reports SET status = ? WHERE id = ?', [status, id])
+      : await execute('UPDATE reports SET status = ? WHERE id = ? AND cell = ?', [status, id, scope.cell]);
   return result.affectedRows > 0;
 }
 

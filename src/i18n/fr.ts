@@ -137,6 +137,16 @@ export const fr: Strings = {
     locationPlaceholder: 'Devant l’entrée de CHUK, Gare de Nyabugogo',
     sectorLabel: 'District et secteur',
     sectorPlaceholder: 'Gasabo, Remera',
+    // NEW
+    districtLabel: 'District',
+    chooseDistrict: 'Choisissez un district…',
+    sectorOnlyLabel: 'Secteur',
+    chooseSector: 'Choisissez un secteur…',
+    cellLabel: 'Cellule',
+    cellHint: 'La cellule détermine quel responsable local reçoit votre signalement.',
+    cellPlaceholder: 'Rukiri I',
+    villageLabel: 'Village',
+    villagePlaceholder: 'Amajyambere',
     detailsLabel: 'Détails supplémentaires',
     detailsPlaceholder: 'Décrivez la nature ou l’ampleur du problème.',
     // NEW

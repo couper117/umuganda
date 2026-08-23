@@ -25,6 +25,7 @@ import { Router } from 'express';
 import { VALID_CATEGORIES, VALID_URGENCIES, config } from '../config';
 import { logError } from '../db';
 import { asLocale, languageOptions, negotiateLocale, strings, type Locale } from '../i18n';
+import { districtOptions } from '../lib/areas';
 import { formatDate, formatDateTime, referenceCode } from '../lib/format';
 import { parseReference, validateReport } from '../lib/validate';
 import { csrfToken, csrfVerify } from '../middleware/csrf';
@@ -229,6 +230,7 @@ function renderReport(
     meta: t.pages.report,
     categories: VALID_CATEGORIES,
     urgencies: VALID_URGENCIES,
+    districts: districtOptions(),
     reference: options.reference ?? null,
     error: options.error ?? null,
   });

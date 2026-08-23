@@ -12,6 +12,7 @@
  */
 
 import { VALID_CATEGORIES, VALID_STATUSES, VALID_URGENCIES, config } from '../config';
+import { isDistrict, isSectorOf } from './areas';
 import type { Category, Status, Urgency } from '../config';
 import type { ValidationResult } from '../types';
 
@@ -63,18 +64,45 @@ export function validateReport(body: Record<string, unknown>): ValidationResult 
   const location = cleanText(body['location'], config.limits.location);
   if (location === null) errors.push('location');
 
-  const sector = cleanText(body['sector'], config.limits.sector);
+  /*
+   * District and sector are checked against the built-in Kigali lists, and as
+   * a *pair* — a submission naming a Gasabo sector under Kicukiro would land
+   * in neither leader's queue. Both are required, because the cell is what
+   * routes a report to its leader and a cell means nothing without them.
+   *
+   * The cell itself is free text: there is no verified list of Kigali's ~160
+   * cells to check against, and inventing one would mis-route reports rather
+   * than prevent it.
+   */
+  const district = isDistrict(body['district']) ? (body['district'] as string) : null;
+  if (district === null) errors.push('district');
+
+  const sector = isSectorOf(district, body['sector']) ? (body['sector'] as string) : null;
+  if (sector === null) errors.push('sector');
+
+  const cell = cleanText(body['cell'], config.limits.cell);
+  if (cell === null) errors.push('cell');
+
+  const village = cleanText(body['village'], config.limits.village);
   const details = cleanText(body['details'], config.limits.details);
   const name = cleanText(body['name'], config.limits.name);
   const contact = cleanText(body['contact'], config.limits.contact);
 
-  if (errors.length > 0 || category === null || urgency === null || location === null) {
+  if (
+    errors.length > 0 ||
+    category === null ||
+    urgency === null ||
+    location === null ||
+    district === null ||
+    sector === null ||
+    cell === null
+  ) {
     return { ok: false, errors };
   }
 
   return {
     ok: true,
-    data: { category, urgency, location, sector, details, name, contact },
+    data: { category, urgency, location, district, sector, cell, village, details, name, contact },
   };
 }
 

@@ -112,7 +112,10 @@ export const config = {
    *  rather than silently truncated by MySQL. */
   limits: {
     location: 100,
+    district: 50,
     sector: 50,
+    cell: 50,
+    village: 50,
     details: 2000,
     name: 50,
     contact: 50,

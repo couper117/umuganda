@@ -103,8 +103,10 @@ async function ensureSchema(): Promise<void> {
     const [marker] = await conn.query<RowDataPacket[]>("SHOW TABLES LIKE 'admin_users'");
     if (marker.length > 0) {
       // Schema already present. Still make sure the reports indexes exist, for
-      // databases created by an older version of the PHP app.
+      // databases created by an older version of the PHP app, and apply any
+      // columns added since this database was first created.
       await backfillReportIndexes(conn);
+      await backfillColumns(conn);
       return;
     }
 
@@ -121,10 +123,14 @@ async function ensureSchema(): Promise<void> {
       \`contact\` VARCHAR(50) DEFAULT NULL,
       \`ip\` VARCHAR(45) DEFAULT NULL,
       \`status\` VARCHAR(20) NOT NULL DEFAULT 'pending',
+      \`district\` VARCHAR(50) DEFAULT NULL,
+      \`cell\` VARCHAR(50) DEFAULT NULL,
+      \`village\` VARCHAR(50) DEFAULT NULL,
       PRIMARY KEY (\`id\`),
       KEY \`idx_status\` (\`status\`),
       KEY \`idx_urgency\` (\`urgency\`),
-      KEY \`idx_time\` (\`time\`)
+      KEY \`idx_time\` (\`time\`),
+      KEY \`idx_cell\` (\`cell\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     // Dashboard accounts. Passwords are bcrypt digests, never plaintext.
@@ -136,6 +142,11 @@ async function ensureSchema(): Promise<void> {
       \`last_login\` DATETIME DEFAULT NULL,
       \`failed_attempts\` INT(11) NOT NULL DEFAULT 0,
       \`locked_until\` DATETIME DEFAULT NULL,
+      \`role\` VARCHAR(20) NOT NULL DEFAULT 'leader',
+      \`district\` VARCHAR(50) DEFAULT NULL,
+      \`sector\` VARCHAR(50) DEFAULT NULL,
+      \`cell\` VARCHAR(50) DEFAULT NULL,
+      \`is_active\` TINYINT(1) NOT NULL DEFAULT 1,
       PRIMARY KEY (\`id\`),
       UNIQUE KEY \`uniq_username\` (\`username\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
@@ -166,6 +177,65 @@ async function ensureSchema(): Promise<void> {
     await backfillReportIndexes(conn);
   } finally {
     conn.release();
+  }
+}
+
+/**
+ * Add columns introduced after a database was first created.
+ *
+ * There is no migration tool, so this stands in for one: each entry is checked
+ * with SHOW COLUMNS and added only when missing, which makes the whole function
+ * safe to run on every boot. Names and definitions come from the fixed list
+ * below and never from input, because neither can be a placeholder.
+ *
+ * The first admin account predates roles entirely, so any row still carrying
+ * the column default is promoted to superadmin — otherwise adding roles would
+ * lock the only existing operator out of their own account.
+ */
+async function backfillColumns(conn: PoolConnection): Promise<void> {
+  const columns: ReadonlyArray<readonly [table: string, column: string, definition: string]> = [
+    ['reports', 'district', "VARCHAR(50) DEFAULT NULL AFTER `status`"],
+    ['reports', 'cell', "VARCHAR(50) DEFAULT NULL AFTER `district`"],
+    ['reports', 'village', "VARCHAR(50) DEFAULT NULL AFTER `cell`"],
+    ['admin_users', 'role', "VARCHAR(20) NOT NULL DEFAULT 'leader'"],
+    ['admin_users', 'district', 'VARCHAR(50) DEFAULT NULL'],
+    ['admin_users', 'sector', 'VARCHAR(50) DEFAULT NULL'],
+    ['admin_users', 'cell', 'VARCHAR(50) DEFAULT NULL'],
+    ['admin_users', 'is_active', 'TINYINT(1) NOT NULL DEFAULT 1'],
+  ];
+
+  let addedRole = false;
+
+  for (const [table, column, definition] of columns) {
+    const [existing] = await conn.query<RowDataPacket[]>(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [column]);
+    if (existing.length > 0) continue;
+    try {
+      await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+      if (table === 'admin_users' && column === 'role') addedRole = true;
+    } catch (err) {
+      logError(`Could not add column ${table}.${column}`, err);
+    }
+  }
+
+  // Accounts that existed before roles did were the operator's own, so they
+  // become superadmin rather than being silently demoted to a leader with no
+  // cell — which would show them an empty queue and no way to fix it.
+  if (addedRole) {
+    try {
+      await conn.query("UPDATE `admin_users` SET `role` = 'superadmin'");
+      logError('Roles added: existing admin accounts promoted to superadmin');
+    } catch (err) {
+      logError('Could not promote existing admin accounts to superadmin', err);
+    }
+  }
+
+  const [cellIndex] = await conn.query<RowDataPacket[]>("SHOW INDEX FROM `reports` WHERE Key_name = 'idx_cell'");
+  if (cellIndex.length === 0) {
+    try {
+      await conn.query('ALTER TABLE `reports` ADD INDEX `idx_cell` (`cell`)');
+    } catch (err) {
+      logError('Could not add index idx_cell on reports', err);
+    }
   }
 }
 

@@ -148,6 +148,16 @@ export interface Strings {
     locationPlaceholder: string;
     sectorLabel: string;
     sectorPlaceholder: string;
+    /** Structured administrative location, added with the leader roles. */
+    districtLabel: string;
+    chooseDistrict: string;
+    sectorOnlyLabel: string;
+    chooseSector: string;
+    cellLabel: string;
+    cellHint: string;
+    cellPlaceholder: string;
+    villageLabel: string;
+    villagePlaceholder: string;
     detailsLabel: string;
     detailsPlaceholder: string;
     contactHeading: string;

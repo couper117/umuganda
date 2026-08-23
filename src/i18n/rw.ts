@@ -138,6 +138,16 @@ export const rw: Strings = {
     locationPlaceholder: 'Kwinjira kwa CHUK, Parikingi ya Nyabugogo',
     sectorLabel: 'Akarere na Umurenge',
     sectorPlaceholder: 'Gasabo, Remera',
+    // NEW — structured location, added with the leader roles.
+    districtLabel: 'Akarere',
+    chooseDistrict: 'Hitamo akarere…',
+    sectorOnlyLabel: 'Umurenge',
+    chooseSector: 'Hitamo umurenge…',
+    cellLabel: 'Akagari',
+    cellHint: "Akagari ni ko kagena umuyobozi w'aho utuye uzakira iraporo yawe.",
+    cellPlaceholder: 'Rukiri I',
+    villageLabel: 'Umudugudu',
+    villagePlaceholder: 'Amajyambere',
     detailsLabel: 'Ibindi Bisobanuro',
     detailsPlaceholder: 'Sobanura neza uko ikibazo giteye.',
     // NEW

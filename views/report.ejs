@@ -118,12 +118,50 @@
                          placeholder="<%= t.form.locationPlaceholder %>">
                 </div>
 
-                <div class="field">
-                  <label for="sector">
-                    <%= t.form.sectorLabel %> <span class="optional">(<%= t.form.optional %>)</span>
-                  </label>
-                  <input type="text" id="sector" name="sector" maxlength="50"
-                         placeholder="<%= t.form.sectorPlaceholder %>">
+                <!-- District, sector and cell decide which leader the report
+                     reaches, so all three are required. The sector list is
+                     filtered to the chosen district by app.js; with JavaScript
+                     off every sector is listed and the server rejects a pair
+                     that does not match. -->
+                <div class="field-row">
+                  <div class="field">
+                    <label for="district"><%= t.form.districtLabel %> *</label>
+                    <select id="district" name="district" required data-district-select>
+                      <option value=""><%= t.form.chooseDistrict %></option>
+                      <% districts.forEach(function (d) { %>
+                        <option value="<%= d.name %>"><%= d.name %></option>
+                      <% }); %>
+                    </select>
+                  </div>
+
+                  <div class="field">
+                    <label for="sector"><%= t.form.sectorOnlyLabel %> *</label>
+                    <select id="sector" name="sector" required data-sector-select>
+                      <option value=""><%= t.form.chooseSector %></option>
+                      <% districts.forEach(function (d) { %>
+                        <% d.sectors.forEach(function (sec) { %>
+                          <option value="<%= sec %>" data-district="<%= d.name %>"><%= sec %></option>
+                        <% }); %>
+                      <% }); %>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="field-row">
+                  <div class="field">
+                    <label for="cell"><%= t.form.cellLabel %> *</label>
+                    <span class="field-hint" id="cell-hint"><%= t.form.cellHint %></span>
+                    <input type="text" id="cell" name="cell" maxlength="50" required
+                           aria-describedby="cell-hint" placeholder="<%= t.form.cellPlaceholder %>">
+                  </div>
+
+                  <div class="field">
+                    <label for="village">
+                      <%= t.form.villageLabel %> <span class="optional">(<%= t.form.optional %>)</span>
+                    </label>
+                    <input type="text" id="village" name="village" maxlength="50"
+                           placeholder="<%= t.form.villagePlaceholder %>">
+                  </div>
                 </div>
 
                 <div class="field">

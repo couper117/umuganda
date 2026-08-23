@@ -21,6 +21,9 @@ export interface ReportRow {
   contact: string | null;
   ip: string | null;
   status: string;
+  district: string | null;
+  cell: string | null;
+  village: string | null;
 }
 
 /** The subset of a report that is safe to show the public: no reporter name,
@@ -34,6 +37,9 @@ export interface PublicReport {
   sector: string | null;
   details: string | null;
   status: string;
+  district: string | null;
+  cell: string | null;
+  village: string | null;
 }
 
 /** A row of the `admin_users` table. */
@@ -45,6 +51,11 @@ export interface AdminUserRow {
   last_login: Date | null;
   failed_attempts: number;
   locked_until: Date | null;
+  role: string;
+  district: string | null;
+  sector: string | null;
+  cell: string | null;
+  is_active: number;
 }
 
 /** A validated submission, ready to insert. Optional fields are null when the
@@ -53,7 +64,10 @@ export interface ValidatedReport {
   category: Category;
   urgency: Urgency;
   location: string;
+  district: string | null;
   sector: string | null;
+  cell: string | null;
+  village: string | null;
   details: string | null;
   name: string | null;
   contact: string | null;
@@ -104,11 +118,18 @@ export interface TrackPayload {
   status: Status;
 }
 
+/** What an account is allowed to do. */
+export type Role = 'superadmin' | 'leader';
+
 /** Fields the session carries once an admin signs in. */
 declare module 'express-session' {
   interface SessionData {
     adminId?: number;
     adminUsername?: string;
+    /** 'superadmin' or 'leader'. Set at sign-in from the database row. */
+    adminRole?: string;
+    /** The leader's cell. Undefined for a superadmin, who is not scoped. */
+    adminCell?: string;
     csrfToken?: string;
     createdAt?: number;
     lastActivity?: number;
