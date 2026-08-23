@@ -67,6 +67,55 @@ interface MutationResponse {
   }
 
   /* ---------------------------------------------------------------------
+   * District -> sector dependency, on the accounts page
+   *
+   * Same enhancement as the public report form: narrows the sector list to the
+   * chosen district. The server validates the pair regardless.
+   * ------------------------------------------------------------------ */
+
+  (function areaSelects(): void {
+    const district = document.querySelector<HTMLSelectElement>('[data-district-select]');
+    const sector = document.querySelector<HTMLSelectElement>('[data-sector-select]');
+    if (district === null || sector === null) return;
+
+    // Narrowing does not flow into apply() below, so the checked values are
+    // captured here where the compiler can still see them.
+    const dSel = district;
+    const sSel = sector;
+
+    // Options are removed from the DOM rather than hidden, because `hidden` on
+    // an <option> is ignored by several browsers and Safari in particular will
+    // still show and allow it.
+    const all = Array.prototype.slice.call(sSel.options) as HTMLOptionElement[];
+    const placeholder = all.filter((o) => o.value === '');
+    const real = all.filter((o) => o.value !== '');
+
+    function apply(): void {
+      const chosen = dSel.value;
+      const previous = sSel.value;
+
+      sSel.textContent = '';
+      placeholder.forEach((o) => sSel.appendChild(o));
+
+      real
+        .filter((o) => chosen === '' || o.getAttribute('data-district') === chosen)
+        .forEach((o) => sSel.appendChild(o));
+
+      // Keep the sector if it survived the filter; otherwise fall back to the
+      // placeholder so a stale value is never submitted silently.
+      sSel.value = Array.prototype.some.call(sSel.options, function (o: HTMLOptionElement) {
+        return o.value === previous;
+      })
+        ? previous
+        : '';
+    }
+
+    dSel.addEventListener('change', apply);
+    apply();
+  })();
+
+
+  /* ---------------------------------------------------------------------
    * Toasts
    * ------------------------------------------------------------------ */
   const toastRegion = document.getElementById('toastRegion');

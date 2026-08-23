@@ -1,0 +1,53 @@
+<%
+/**
+ * forbidden.ejs — shown when a signed-in account reaches a page its role does
+ * not allow.
+ *
+ * Deliberately not a redirect to sign-in: the visitor is already identified,
+ * so bouncing them to a login form would suggest their session had expired and
+ * send them round a loop that can never succeed. This says what happened.
+ */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Not allowed — Clean Kigali</title>
+  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/style.css">
+  <link rel="stylesheet" href="/admin.css">
+</head>
+<body class="admin-body">
+  <nav class="navbar" aria-label="Dashboard navigation">
+    <div class="container nav-inner">
+      <a class="navbar-brand" href="/admin">
+        <span class="brand-mark" aria-hidden="true">CK</span>
+        <span>Clean<span class="brand-highlight">Kigali</span></span>
+      </a>
+      <div class="admin-identity">
+        <a class="nav-link" href="/admin">Back to the queue</a>
+        <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
+      </div>
+    </div>
+  </nav>
+
+  <main class="auth-page">
+    <div class="auth-panel">
+      <span class="icon-circle" style="background:#c0392b;box-shadow:0 5px 15px rgba(192,57,43,0.28);">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
+        </svg>
+      </span>
+
+      <div class="auth-head">
+        <h1>Not allowed</h1>
+        <p><%= message %></p>
+      </div>
+
+      <a href="/admin" class="btn btn-primary btn-block">Back to the queue</a>
+    </div>
+  </main>
+</body>
+</html>

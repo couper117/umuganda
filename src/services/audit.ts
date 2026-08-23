@@ -18,6 +18,8 @@ export type AuditAction =
   | 'logout'
   | 'admin_created'
   | 'password_changed'
+  | 'account_activated'
+  | 'account_deactivated'
   | 'status_change'
   | 'report_deleted';
 

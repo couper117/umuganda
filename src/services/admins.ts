@@ -16,7 +16,8 @@ import bcrypt from 'bcryptjs';
 import type { Request } from 'express';
 import type { RowDataPacket } from 'mysql2';
 import { config } from '../config';
-import { execute, logError, queryOne } from '../db';
+import { execute, logError, query, queryOne } from '../db';
+import { isDistrict, isSectorOf } from '../lib/areas';
 import { passwordProblem, cleanText, validUsername } from '../lib/validate';
 import type { AdminUserRow } from '../types';
 import { audit } from './audit';
@@ -111,7 +112,7 @@ export async function login(
   }
 
   const user = await queryOne<AdminRow>(
-    'SELECT id, username, password_hash, created_at, last_login, failed_attempts, locked_until FROM admin_users WHERE username = ?',
+    'SELECT id, username, password_hash, created_at, last_login, failed_attempts, locked_until, role, district, sector, cell, is_active FROM admin_users WHERE username = ?',
     [username],
   );
 
@@ -135,6 +136,17 @@ export async function login(
     return generic;
   }
 
+  /*
+   * Deactivated accounts are refused here, after the password check rather than
+   * before it. Checking first would answer faster for a deactivated account
+   * than a live one with a wrong password, which turns the form into an oracle
+   * for which accounts exist. The message stays generic for the same reason.
+   */
+  if (Number(user.is_active) !== 1) {
+    await audit(user.username, 'login_failed', { detail: 'Account is deactivated', ip });
+    return generic;
+  }
+
   // Success. Reset counters, refresh the hash if the cost factor has moved on.
   if (needsRehash(user.password_hash)) {
     try {
@@ -154,6 +166,10 @@ export async function login(
   await regenerateSession(req);
   req.session.adminId = user.id;
   req.session.adminUsername = user.username;
+  req.session.adminRole = user.role;
+  // Undefined rather than null for a superadmin: they are not scoped, and
+  // currentScope() reads the absence rather than a sentinel value.
+  if (user.role !== 'superadmin' && user.cell !== null) req.session.adminCell = user.cell;
   req.session.createdAt = Date.now();
   req.session.lastActivity = Date.now();
   // Issue a fresh CSRF token for the new session.
@@ -161,6 +177,186 @@ export async function login(
 
   await audit(user.username, 'login_success', { ip });
   return { ok: true, message: 'Signed in.' };
+}
+
+/** One account as the management page lists it. Never carries the digest. */
+export interface AccountSummary {
+  id: number;
+  username: string;
+  role: string;
+  district: string | null;
+  sector: string | null;
+  cell: string | null;
+  isActive: boolean;
+  createdAt: Date;
+  lastLogin: Date | null;
+  isLocked: boolean;
+}
+
+interface AccountRow extends RowDataPacket {
+  id: number;
+  username: string;
+  role: string;
+  district: string | null;
+  sector: string | null;
+  cell: string | null;
+  is_active: number;
+  created_at: Date;
+  last_login: Date | null;
+  locked_until: Date | null;
+}
+
+/**
+ * Every account, for the superadmin's management page.
+ *
+ * The column list deliberately omits password_hash. A digest is not a secret
+ * that must never be seen, but there is no reason for it to travel to a
+ * template, so it is not in the result set.
+ */
+export async function listAccounts(): Promise<AccountSummary[]> {
+  const rows = await query<AccountRow>(
+    `SELECT id, username, role, district, sector, cell, is_active, created_at, last_login, locked_until
+     FROM admin_users
+     ORDER BY role = 'superadmin' DESC, username ASC`,
+  );
+
+  const now = Date.now();
+  return rows.map((r) => ({
+    id: r.id,
+    username: r.username,
+    role: r.role,
+    district: r.district,
+    sector: r.sector,
+    cell: r.cell,
+    isActive: Number(r.is_active) === 1,
+    createdAt: r.created_at,
+    lastLogin: r.last_login,
+    isLocked: r.locked_until !== null && new Date(r.locked_until).getTime() > now,
+  }));
+}
+
+/**
+ * Create a cell leader. Superadmin only — the route enforces that.
+ *
+ * The area is validated against the built-in Kigali lists rather than trusted,
+ * because the cell becomes the leader's entire view of the service: a typo
+ * here produces an account that silently sees nothing, which looks like a bug
+ * in the app rather than a mistake in the form.
+ */
+export async function createLeader(
+  input: {
+    username: unknown;
+    password: unknown;
+    district: unknown;
+    sector: unknown;
+    cell: unknown;
+  },
+  actor: string,
+  ip: string,
+): Promise<AuthResult> {
+  const username = cleanText(input.username, config.limits.username);
+  if (username === null || !validUsername(username)) {
+    return {
+      ok: false,
+      message: 'Username must be 3–50 characters, using letters, numbers, dot, underscore or hyphen only.',
+    };
+  }
+
+  const weak = passwordProblem(input.password);
+  if (weak !== null) return { ok: false, message: weak };
+
+  if (!isDistrict(input.district)) {
+    return { ok: false, message: 'Choose a district.' };
+  }
+  if (!isSectorOf(input.district, input.sector)) {
+    return { ok: false, message: 'Choose a sector that belongs to the district you picked.' };
+  }
+
+  const cell = cleanText(input.cell, config.limits.cell);
+  if (cell === null) {
+    return { ok: false, message: 'Enter the cell this leader is responsible for.' };
+  }
+
+  const hash = await bcrypt.hash(input.password as string, BCRYPT_ROUNDS);
+
+  try {
+    await execute(
+      `INSERT INTO admin_users (username, password_hash, created_at, role, district, sector, cell, is_active)
+       VALUES (?, ?, ?, 'leader', ?, ?, ?, 1)`,
+      [username, hash, new Date(), input.district as string, input.sector as string, cell],
+    );
+  } catch (err) {
+    const duplicate = typeof err === 'object' && err !== null && (err as { errno?: number }).errno === 1062;
+    if (duplicate) return { ok: false, message: 'That username is already taken.' };
+    logError('Leader account creation failed', err);
+    return { ok: false, message: 'Could not create the account. Please try again.' };
+  }
+
+  await audit(actor, 'admin_created', {
+    detail: `Leader ${username} for ${cell}, ${input.sector as string}, ${input.district as string}`,
+    ip,
+  });
+  return { ok: true, message: `Created ${username} as leader of ${cell}.` };
+}
+
+/**
+ * Activate or deactivate an account.
+ *
+ * Deactivating rather than deleting keeps the audit trail meaningful: the
+ * actions that account took stay attributable to a name that still exists.
+ *
+ * Two things it refuses, both of which would leave the service unmanageable:
+ * a superadmin deactivating themselves, and deactivating the last active
+ * superadmin. Either would produce a system nobody can administer, recoverable
+ * only from the command line.
+ */
+export async function setAccountActive(
+  targetId: number,
+  active: boolean,
+  actorId: number,
+  actor: string,
+  ip: string,
+): Promise<AuthResult> {
+  if (!active && targetId === actorId) {
+    return { ok: false, message: 'You cannot deactivate your own account.' };
+  }
+
+  const target = await queryOne<AccountRow>(
+    'SELECT id, username, role, district, sector, cell, is_active, created_at, last_login, locked_until FROM admin_users WHERE id = ?',
+    [targetId],
+  );
+  if (target === undefined) {
+    return { ok: false, message: 'That account no longer exists.' };
+  }
+
+  if (!active && target.role === 'superadmin') {
+    const others = await queryOne<CountRow>(
+      "SELECT COUNT(*) AS c FROM admin_users WHERE role = 'superadmin' AND is_active = 1 AND id <> ?",
+      [targetId],
+    );
+    if (Number(others?.c ?? 0) === 0) {
+      return { ok: false, message: 'That is the only active superadmin. Promote another one first.' };
+    }
+  }
+
+  await execute('UPDATE admin_users SET is_active = ? WHERE id = ?', [active ? 1 : 0, targetId]);
+
+  // A deactivated account must not keep working until its session times out.
+  if (!active) {
+    try {
+      await execute('DELETE FROM sessions WHERE JSON_EXTRACT(data, ?) = ?', ['$.adminId', targetId]);
+    } catch (err) {
+      logError('Could not clear sessions for a deactivated account', err);
+    }
+  }
+
+  await audit(actor, active ? 'account_activated' : 'account_deactivated', {
+    targetId,
+    detail: target.username,
+    ip,
+  });
+
+  return { ok: true, message: `${target.username} ${active ? 'reactivated' : 'deactivated'}.` };
 }
 
 /**
@@ -209,7 +405,7 @@ export async function changePassword(
   }
 
   const user = await queryOne<AdminRow>(
-    'SELECT id, username, password_hash, created_at, last_login, failed_attempts, locked_until FROM admin_users WHERE id = ?',
+    'SELECT id, username, password_hash, created_at, last_login, failed_attempts, locked_until, role, district, sector, cell, is_active FROM admin_users WHERE id = ?',
     [adminId],
   );
 

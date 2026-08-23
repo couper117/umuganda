@@ -22,11 +22,12 @@ import { VALID_CATEGORIES, VALID_URGENCIES } from '../config';
 import { logError } from '../db';
 import { DEFAULT_LOCALE, strings } from '../i18n';
 import { formatDateTime, referenceCode } from '../lib/format';
+import { districtOptions } from '../lib/areas';
 import { asStatus } from '../lib/validate';
-import { currentAdmin, requireAdmin } from '../middleware/auth';
+import { currentAdmin, currentScope, isSuperadmin, requireAdmin, requireSuperadmin } from '../middleware/auth';
 import { requireCsrf, csrfToken } from '../middleware/csrf';
 import { clientIp, noIndex } from '../middleware/security';
-import { changePassword } from '../services/admins';
+import { changePassword, createLeader, listAccounts, setAccountActive } from '../services/admins';
 import { audit } from '../services/audit';
 import {
   adminStats,
@@ -58,6 +59,8 @@ interface AdminCard {
   reporterName: string;
   contact: string;
   ip: string;
+  cell: string;
+  village: string;
   details: string;
   /** Lowercased haystack for the client-side search. */
   search: string;
@@ -73,7 +76,14 @@ function safeKey(value: string | null, allowed: readonly string[], fallback: str
 
 adminRouter.get('/admin', noIndex, requireAdmin(false), async (req, res, next) => {
   try {
-    const [stats, hotspots, rows] = await Promise.all([adminStats(), topLocations(3), allReportsForAdmin()]);
+    // One scope, computed once and passed to every query. A superadmin gets
+    // null (everything); a leader gets their own cell.
+    const scope = currentScope(req);
+    const [stats, hotspots, rows] = await Promise.all([
+      adminStats(scope),
+      topLocations(3, scope),
+      allReportsForAdmin(scope),
+    ]);
 
     const cards: AdminCard[] = rows.map((row) => {
       const categoryKey = safeKey(row.category, VALID_CATEGORIES, 'other');
@@ -99,8 +109,10 @@ adminRouter.get('/admin', noIndex, requireAdmin(false), async (req, res, next) =
         reporterName,
         contact: row.contact === null || row.contact === '' ? 'None' : row.contact,
         ip: row.ip ?? '',
+        cell: row.cell === null || row.cell === '' ? 'Unspecified' : row.cell,
+        village: row.village === null || row.village === '' ? '' : row.village,
         details: row.details === null || row.details === '' ? 'No additional description.' : row.details,
-        search: [reference, location, sector, reporterName, categoryKey, row.details ?? '']
+        search: [reference, location, sector, row.cell ?? '', row.village ?? '', reporterName, categoryKey, row.details ?? '']
           .join(' ')
           .toLowerCase(),
       };
@@ -109,6 +121,8 @@ adminRouter.get('/admin', noIndex, requireAdmin(false), async (req, res, next) =
     res.render('admin', {
       csrfToken: csrfToken(req),
       admin: currentAdmin(req),
+      isSuper: isSuperadmin(req),
+      scopeLabel: scope === null ? null : scope.cell,
       stats,
       hotspots,
       cards,
@@ -134,7 +148,7 @@ adminRouter.post('/admin/status', noIndex, requireAdmin(true), requireCsrf(true)
   }
 
   try {
-    const changed = await updateReportStatus(id, status);
+    const changed = await updateReportStatus(id, status, currentScope(req));
     if (!changed) {
       res.status(404).json({ success: false, message: 'That report no longer exists.' });
       return;
@@ -198,30 +212,144 @@ adminRouter.post('/admin/password', noIndex, requireAdmin(false), requireCsrf(fa
 });
 
 /* -------------------------------------------------------------------------
+ * Accounts — superadmin only
+ *
+ * requireSuperadmin sits on every one of these, immediately after
+ * requireAdmin, rather than being checked once inside a handler. A leader
+ * reaching any of them gets 403 and never touches the query underneath.
+ * ---------------------------------------------------------------------- */
+
+/** Render the accounts page, optionally with the outcome of an action. */
+async function renderAccounts(
+  req: import('express').Request,
+  res: import('express').Response,
+  options: { error?: string | undefined; notice?: string | undefined; status?: number },
+): Promise<void> {
+  const accounts = await listAccounts();
+  if (options.status !== undefined) res.status(options.status);
+  res.render('accounts', {
+    csrfToken: csrfToken(req),
+    admin: currentAdmin(req),
+    adminId: req.session.adminId ?? 0,
+    accounts,
+    districts: districtOptions(),
+    error: options.error ?? null,
+    notice: options.notice ?? null,
+    portalHref: `/${DEFAULT_LOCALE}`,
+  });
+}
+
+adminRouter.get('/admin/accounts', noIndex, requireAdmin(false), requireSuperadmin(false), async (req, res, next) => {
+  try {
+    await renderAccounts(req, res, {});
+  } catch (err) {
+    next(err);
+  }
+});
+
+adminRouter.post(
+  '/admin/accounts',
+  noIndex,
+  requireAdmin(false),
+  requireSuperadmin(false),
+  requireCsrf(false),
+  async (req, res, next) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const result = await createLeader(
+        {
+          username: body['username'],
+          password: body['password'],
+          district: body['district'],
+          sector: body['sector'],
+          cell: body['cell'],
+        },
+        currentAdmin(req),
+        clientIp(req),
+      );
+
+      await renderAccounts(req, res, {
+        error: result.ok ? undefined : result.message,
+        notice: result.ok ? result.message : undefined,
+        status: result.ok ? 200 : 400,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+adminRouter.post(
+  '/admin/accounts/active',
+  noIndex,
+  requireAdmin(false),
+  requireSuperadmin(false),
+  requireCsrf(false),
+  async (req, res, next) => {
+    try {
+      const body = (req.body ?? {}) as Record<string, unknown>;
+      const targetId = Number.parseInt(String(body['id'] ?? ''), 10);
+      const active = body['active'] === '1';
+
+      if (!Number.isInteger(targetId) || targetId <= 0) {
+        await renderAccounts(req, res, { error: 'Invalid request.', status: 400 });
+        return;
+      }
+
+      const result = await setAccountActive(
+        targetId,
+        active,
+        req.session.adminId ?? 0,
+        currentAdmin(req),
+        clientIp(req),
+      );
+
+      await renderAccounts(req, res, {
+        error: result.ok ? undefined : result.message,
+        notice: result.ok ? result.message : undefined,
+        status: result.ok ? 200 : 400,
+      });
+    } catch (err) {
+      next(err);
+    }
+  },
+);
+
+/* -------------------------------------------------------------------------
  * Delete
  * ---------------------------------------------------------------------- */
 
-adminRouter.post('/admin/delete', noIndex, requireAdmin(true), requireCsrf(true), async (req, res) => {
-  const body = (req.body ?? {}) as Record<string, unknown>;
-  const id = Number.parseInt(String(body['id'] ?? ''), 10);
+// Deletion destroys the record a resident's report and the audit trail point
+// at, so it stays with the superadmin. requireSuperadmin runs after
+// requireAdmin, so a leader gets 403 rather than being bounced to sign-in.
+adminRouter.post(
+  '/admin/delete',
+  noIndex,
+  requireAdmin(true),
+  requireSuperadmin(true),
+  requireCsrf(true),
+  async (req, res) => {
+    const body = (req.body ?? {}) as Record<string, unknown>;
+    const id = Number.parseInt(String(body['id'] ?? ''), 10);
 
-  if (!Number.isInteger(id) || id <= 0) {
-    res.status(400).json({ success: false, message: 'Invalid request.' });
-    return;
-  }
-
-  try {
-    const removed = await deleteReport(id);
-    if (!removed) {
-      res.status(404).json({ success: false, message: 'That report no longer exists.' });
+    if (!Number.isInteger(id) || id <= 0) {
+      res.status(400).json({ success: false, message: 'Invalid request.' });
       return;
     }
 
-    await audit(currentAdmin(req), 'report_deleted', { targetId: id, ip: clientIp(req) });
+    try {
+      const removed = await deleteReport(id);
+      if (!removed) {
+        res.status(404).json({ success: false, message: 'That report no longer exists.' });
+        return;
+      }
 
-    res.json({ success: true });
-  } catch (err) {
-    logError(`Delete failed for report ${id}`, err);
-    res.status(500).json({ success: false, message: 'Could not delete the report. Please try again.' });
-  }
-});
+      await audit(currentAdmin(req), 'report_deleted', { targetId: id, ip: clientIp(req) });
+
+      res.json({ success: true });
+    } catch (err) {
+      logError(`Delete failed for report ${id}`, err);
+      res.status(500).json({ success: false, message: 'Could not delete the report. Please try again.' });
+    }
+  },
+);

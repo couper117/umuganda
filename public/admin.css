@@ -1040,3 +1040,44 @@ body.admin-body {
     align-items: stretch;
   }
 }
+
+/* -------------------------------------------------------------------------
+   Accounts page
+   ---------------------------------------------------------------------- */
+
+.account-row .row-icon {
+  background: var(--green-tint);
+  color: var(--green-dark);
+}
+
+/* A deactivated account stays legible but visibly out of service, so the list
+   reads at a glance without hunting for the chip. */
+.account-row.is-inactive {
+  border-left-color: var(--urgency-low);
+  background: #fbfcfb;
+}
+
+.account-row.is-inactive .row-title,
+.account-row.is-inactive .row-strong {
+  color: var(--muted);
+}
+
+.status-chip.chip-on {
+  background: var(--green-tint);
+  color: var(--green-dark);
+}
+
+.status-chip.chip-off {
+  background: #f1f3f2;
+  color: var(--urgency-low);
+}
+
+.account-row .col-actions form {
+  margin: 0;
+}
+
+.account-row .btn-danger,
+.account-row .btn-secondary {
+  padding: 10px 18px;
+  font-size: 0.8rem;
+}

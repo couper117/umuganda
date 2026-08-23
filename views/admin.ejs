@@ -37,6 +37,9 @@
 
       <div class="admin-identity">
         <a class="nav-link" href="<%= portalHref %>">View public site</a>
+        <% if (isSuper) { %>
+          <a class="nav-link" href="/admin/accounts">Accounts</a>
+        <% } %>
         <a class="nav-link" href="/admin/password">Change password</a>
         <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
         <form method="POST" action="/logout" class="logout-form">
@@ -51,7 +54,13 @@
     <div class="container">
       <h1>Report queue</h1>
       <p>
-        Reports are ordered by urgency, then newest first. Changes are saved immediately and recorded in the audit log.
+        <% if (scopeLabel) { %>
+          Reports filed in <strong><%= scopeLabel %></strong> cell. Ordered by urgency, then newest first.
+          Changes are saved immediately and recorded in the audit log.
+        <% } else { %>
+          All reports across Kigali, ordered by urgency then newest first.
+          Changes are saved immediately and recorded in the audit log.
+        <% } %>
       </p>
     </div>
   </header>
@@ -192,7 +201,7 @@
 
             <div class="col-where" data-label="Location">
               <p class="row-strong"><%= card.location %></p>
-              <p class="row-quiet"><%= card.sector %></p>
+              <p class="row-quiet"><%= card.cell %><%= card.sector !== 'Unspecified' ? ' · ' + card.sector : '' %></p>
             </div>
 
             <div class="col-who" data-label="Reporter">
@@ -223,6 +232,7 @@
                 </div>
               </fieldset>
 
+              <% if (isSuper) { %>
               <button type="button" class="icon-btn delete-btn" data-report="<%= card.id %>"
                       data-reference="<%= card.reference %>"
                       title="Delete <%= card.reference %>">
@@ -233,6 +243,7 @@
                 </svg>
                 <span class="visually-hidden">Delete report <%= card.reference %></span>
               </button>
+              <% } %>
             </div>
 
             <details class="row-details">
