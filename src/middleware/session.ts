@@ -62,6 +62,16 @@ export function sessionMiddleware(): RequestHandler {
 }
 
 /**
+ * Requests a page makes by itself, on a timer. They must not count as activity:
+ * a dashboard left open on an unattended desk polls for ever, and if each poll
+ * reset the clock the 30-minute idle sign-out would never fire. Expiry is still
+ * enforced on them, which is what signs that desk out.
+ */
+export function isBackgroundPoll(path: string): boolean {
+  return path === '/admin/live' || /^\/[a-z]{2}\/stats\.json$/.test(path);
+}
+
+/**
  * Enforce the idle and absolute timeouts.
  *
  * The cookie maxAge covers idle expiry on the client side, but a client is not
@@ -70,6 +80,7 @@ export function sessionMiddleware(): RequestHandler {
  */
 export const enforceSessionTimeouts: RequestHandler = (req, _res, next) => {
   const now = Date.now();
+  const background = isBackgroundPoll(req.path);
   const { createdAt, lastActivity } = req.session;
 
   const idleExpired = lastActivity !== undefined && now - lastActivity > config.session.idleTimeoutMs;
@@ -90,6 +101,6 @@ export const enforceSessionTimeouts: RequestHandler = (req, _res, next) => {
   }
 
   if (createdAt === undefined) req.session.createdAt = now;
-  req.session.lastActivity = now;
+  if (!background) req.session.lastActivity = now;
   next();
 };

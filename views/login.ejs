@@ -1,10 +1,6 @@
 <%
 /**
- * login.ejs — admin sign-in.
- *
- * Loads the public stylesheet then admin.css, the same pairing the dashboard
- * uses, so this no longer looks like a different application from the site it
- * guards.
+ * login.ejs — staff sign-in.
  *
  * The error message is deliberately identical for a wrong password and an
  * unknown username; see services/admins.ts.
@@ -12,41 +8,15 @@
 %><!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Sign in — Clean Kigali</title>
-  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/admin.css">
+  <%- include('partials/staffhead', { pageTitle: 'Sign in' }) %>
 </head>
-<body class="admin-body">
-  <nav class="navbar" aria-label="Site">
-    <div class="container nav-inner">
-      <a class="navbar-brand" href="<%= portalHref %>">
-        <span class="brand-mark" aria-hidden="true">CK</span>
-        <span>Clean<span class="brand-highlight">Kigali</span></span>
-      </a>
-      <span class="admin-tag">Staff</span>
-      <div class="admin-identity">
-        <a class="nav-link" href="<%= portalHref %>">Back to the public site</a>
-      </div>
-    </div>
-  </nav>
-
-  <main class="auth-page">
+<body class="auth">
+  <%- include('partials/authart') %>
+  <main class="auth-main">
     <div class="auth-panel">
-      <span class="icon-circle">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="4" y="10" width="16" height="10" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/>
-        </svg>
-      </span>
-
-      <div class="auth-head">
-        <h1>Sign in</h1>
-        <p>This dashboard is for authorised staff of the Clean Kigali Initiative.</p>
-      </div>
+      <a class="brand auth-brand" href="<%= portalHref %>"><%- include('partials/logo') %><span>Clean Kigali</span></a>
+      <h1>Welcome back</h1>
+      <p class="auth-lead">Sign in to the dashboard for authorised staff of the Clean Kigali Initiative.</p>
 
       <% if (error) { %>
         <div class="flash flash-error" role="alert"><span><%= error %></span></div>
@@ -57,24 +27,20 @@
         <input type="hidden" name="next" value="<%= next %>">
 
         <div class="field">
-          <label class="field-label" for="username">Username</label>
-          <input type="text" id="username" name="username" class="field-input"
-                 required maxlength="50" autocomplete="username"
+          <label for="username">Username</label>
+          <input type="text" id="username" name="username" required maxlength="50" autocomplete="username"
                  autocapitalize="none" autocorrect="off" spellcheck="false" autofocus>
         </div>
 
         <div class="field">
-          <label class="field-label" for="password">Password</label>
-          <input type="password" id="password" name="password" class="field-input"
-                 required maxlength="200" autocomplete="current-password">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password" required maxlength="200" autocomplete="current-password">
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block">Sign in</button>
+        <button type="submit" class="btn btn-primary btn-block auth-submit">Sign in</button>
       </form>
 
-      <p class="auth-foot">
-        <a href="<%= portalHref %>">Back to the public site</a>
-      </p>
+      <p class="auth-foot"><a href="<%= portalHref %>">Back to the public site</a></p>
     </div>
   </main>
 </body>

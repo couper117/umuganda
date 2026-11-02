@@ -61,7 +61,9 @@ async function main() {
     const hash = await bcrypt.hash(password, 12);
 
     await conn.execute(
-      'INSERT INTO admin_users (username, password_hash, created_at, failed_attempts) VALUES (?, ?, ?, 0)',
+      // Explicitly superadmin: the column default is 'leader', which with no cell
+      // would be an account that can see nothing and create nothing.
+      "INSERT INTO admin_users (username, password_hash, created_at, failed_attempts, role) VALUES (?, ?, ?, 0, 'superadmin')",
       [username, hash, new Date()],
     );
 

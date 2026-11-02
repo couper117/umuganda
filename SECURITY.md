@@ -104,6 +104,47 @@ Each item below was exercised against the running app, not just written.
 - Types carry the guarantee onward: the compiler will not let an unvalidated
   string reach a query that expects a `Category`.
 
+### References and reporter feedback — `src/lib/reference.ts`
+
+- New references carry a random token, and a wrong token gets the same answer as a
+  report that does not exist, so a guess cannot confirm that an id is real.
+- Reports filed before tokens existed still open with a bare `CK-<id>`, but they
+  cannot confirm or reopen anything: that needs the token and a CSRF token.
+- Staff usernames and internal notes are never sent to the tracker.
+
+### Photos — `src/lib/image.ts`, `src/services/media.ts`
+
+- Accepted by their bytes, JPEG and PNG only, never by filename or declared type.
+  An SVG sent as `image/jpeg` is refused.
+- EXIF, XMP and comment blocks are stripped on the server even though the browser
+  already re-encodes, because a request can skip the browser.
+- Stored outside `public/` under a random 128-bit name. `/media/:name` accepts only
+  that exact shape, so a path cannot be smuggled in, and the response is `noindex`
+  and privately cached.
+- Limited to 6 MB while parsing. Uploads are held in memory until validated, so also
+  cap request bodies at the reverse proxy in production.
+
+### Geolocation
+
+- `Permissions-Policy` allows `geolocation` for this origin only, and the browser
+  asks only when the visitor presses the button.
+- Coordinates are shown to staff, never on the public feed or tracker.
+
+### Live updates — `src/middleware/session.ts`
+
+- `/admin/live` and `/:locale/stats.json` are polled on a timer, so they do not count
+  as activity. Otherwise a dashboard left open would never reach the 30-minute idle
+  sign-out. Expiry is still enforced on those requests.
+- `/admin/live` is scoped like the rest of the dashboard, and returns 401 once signed
+  out, at which point the page stops polling. The public counters are shared for 15
+  seconds, so any number of open pages costs one query per window.
+
+### CSV export — `src/lib/csv.ts`
+
+- Cells starting with a formula character are neutralised, so a report cannot run a
+  formula when an officer opens the file.
+- Scoped to the viewer's cell, never cached, audited, and leaves out IP addresses.
+
 ### Rate limiting — `src/middleware/rateLimit.ts`
 
 | Action            | Limit             |

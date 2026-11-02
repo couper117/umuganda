@@ -1,214 +1,244 @@
 <%
 /**
- * report.ejs — the submission form, on its own page.
+ * report.ejs — the submission flow.
  *
- * Two states: the form, or the success panel once a report has been saved.
- * The form posts to this same path, so it works with JavaScript disabled — the
- * property the PHP pages had that is worth keeping.
- *
- * Category and urgency are real radio inputs styled as cards. The PHP version
- * faked the selected state with click handlers on divs, which made them
- * unreachable by keyboard; `input:checked + .option-body` does it in CSS
- * instead, so the controls stay native.
+ * Four guided steps with JavaScript; one long form without it, because the form
+ * posts to this same path and works either way. Category and urgency are real
+ * radio inputs styled as cards, so they stay native and keyboard-reachable.
  */
 %><!DOCTYPE html>
 <html lang="<%= t.htmlLang %>">
 <head>
   <%- include('partials/head', { meta: meta }) %>
 </head>
-<body data-strings="<%= clientStrings %>">
+<body data-strings="<%= clientStrings %>" class="<%= reference ? '' : 'is-reporting' %>">
   <a class="skip-link" href="#main"><%= t.skipLink %></a>
-
   <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
 
-  <main id="main">
+  <main id="main" class="container">
+    <% if (reference) { %>
 
-    <section class="page-head">
-      <div class="container">
-        <h1><%= reference ? t.success.heading : t.form.heading %></h1>
-        <p><%= reference ? t.success.body : t.form.intro %></p>
-      </div>
-    </section>
-
-    <section class="section section-panel">
-      <div class="container">
-
-        <% if (reference) { %>
-
-          <div class="panel panel-narrow success-panel">
-            <span class="icon-circle">
-              <%- include('partials/icons', { name: 'check' }) %>
-            </span>
-            <h2><%= t.success.heading %></h2>
+      <section class="page-intro page-body">
+        <div class="ticket">
+          <div class="ticket-head">
+            <svg class="tick" viewBox="0 0 68 68" aria-hidden="true" focusable="false"><path d="m21 35 9 9 17-19"/></svg>
+            <h1><%= t.success.heading %></h1>
             <p><%= t.success.body %></p>
-
-            <div class="reference-box">
-              <p class="reference-label"><%= t.success.refLabel %></p>
-              <p class="reference-code" data-reference><%= reference %></p>
-            </div>
+          </div>
+          <div class="ticket-stub">
+            <p class="reference-label"><%= t.success.refLabel %></p>
+            <p class="reference-code" data-reference><%= reference %></p>
             <p class="keep-safe"><%= t.success.keepSafe %></p>
 
-            <div class="success-actions">
+            <% if (linked) { %>
+              <p class="linked-notice" data-linked-notice><%= t.success.linkedNotice %></p>
+            <% } %>
+
+            <div class="ticket-actions">
               <button class="btn btn-outline" type="button" data-copy-reference>
-                <%- include('partials/icons', { name: 'copy' }) %><%= t.success.copy %>
+                <%- include('partials/icons', { name: 'copy' }) %><span data-copy-label><%= t.success.copy %></span>
+              </button>
+              <button class="btn btn-outline" type="button" data-share-reference hidden>
+                <%- include('partials/icons', { name: 'share' }) %><%= t.ui.share %>
               </button>
               <a class="btn btn-primary" href="/<%= locale %>/track?ref=<%= encodeURIComponent(reference) %>">
                 <%- include('partials/icons', { name: 'search' }) %><%= t.success.track %>
               </a>
-              <a class="btn btn-outline" href="/<%= locale %>/report"><%= t.success.another %></a>
             </div>
-
+            <a class="ticket-another" href="/<%= locale %>/report"><%= t.success.another %></a>
             <p class="visually-hidden" role="status" data-copy-status></p>
           </div>
+        </div>
+      </section>
 
-        <% } else { %>
+    <% } else { %>
 
-          <div class="panel panel-narrow">
+      <header class="page-intro page-intro-center">
+        <h1><%= t.form.heading %></h1>
+        <p><%= t.form.intro %></p>
+      </header>
 
-            <% if (error) { %>
-              <div class="flash flash-error" role="alert">
-                <%- include('partials/icons', { name: 'alert' }) %>
-                <span><%= error %></span>
-              </div>
-            <% } %>
+      <section class="page-body">
+        <div class="panel panel-narrow">
+          <% if (error) { %>
+            <div class="flash flash-error" role="alert">
+              <%- include('partials/icons', { name: 'alert' }) %><span><%= error %></span>
+            </div>
+          <% } %>
 
-            <p class="required-note"><%= t.form.requiredNote %></p>
+          <div class="flash flash-info draft-notice" data-draft-notice hidden>
+            <span data-draft-text></span>
+            <button type="button" class="link-button" data-draft-discard></button>
+          </div>
 
-            <form method="post" action="/<%= locale %>/report" data-report-form novalidate>
-              <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+          <div class="stepper" data-stepper aria-hidden="true">
+            <div class="stepper-track"><span class="stepper-fill" data-stepper-fill></span></div>
+            <ol class="stepper-labels">
+              <li><%= t.ui.stepIssue %></li>
+              <li><%= t.ui.stepWhere %></li>
+              <li><%= t.ui.stepDetails %></li>
+              <li><%= t.ui.stepYou %></li>
+            </ol>
+          </div>
+          <p class="visually-hidden" role="status" data-step-status></p>
 
-              <fieldset class="form-section">
-                <legend><%= t.form.categoryLegend %> *</legend>
+          <form method="post" action="/<%= locale %>/report" enctype="multipart/form-data" data-report-form novalidate>
+            <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+
+            <div class="wizard-step is-active" data-step>
+              <h2 class="step-title"><%= t.ui.stepIssue %></h2>
+              <fieldset class="form-group">
+                <legend><%= t.form.categoryLegend %></legend>
                 <div class="option-grid">
                   <% categories.forEach(function (c, i) { %>
                     <label class="option-card">
                       <input type="radio" name="category" value="<%= c %>" required <%= i === 0 ? 'checked' : '' %>>
                       <span class="option-body">
                         <%- include('partials/icons', { category: c }) %>
-                        <span><%= t.categories[c] %></span>
+                        <span data-option-label><%= t.categories[c] %></span>
                       </span>
                     </label>
                   <% }); %>
                 </div>
               </fieldset>
 
-              <fieldset class="form-section">
-                <legend><%= t.form.urgencyLegend %> *</legend>
-                <div class="option-grid option-grid-tight">
+              <fieldset class="form-group">
+                <legend><%= t.form.urgencyLegend %></legend>
+                <div class="option-grid option-grid-3">
                   <% urgencies.forEach(function (u, i) { %>
                     <label class="option-card">
                       <input type="radio" name="urgency" value="<%= u %>" required <%= i === 0 ? 'checked' : '' %>>
                       <span class="option-body urgency-<%= u %>">
                         <%- include('partials/icons', { urgency: u }) %>
-                        <span><%= t.urgencies[u] %></span>
+                        <span data-option-label><%= t.urgencies[u] %></span>
                       </span>
                     </label>
                   <% }); %>
                 </div>
               </fieldset>
+            </div>
 
-              <div class="form-section">
-                <p class="form-section-title"><%= t.form.locationLabel %></p>
+            <div class="wizard-step" data-step>
+              <h2 class="step-title"><%= t.ui.stepWhere %></h2>
 
+              <div class="field">
+                <label for="location"><%= t.form.locationLabel %> *</label>
+                <span class="field-hint" id="location-hint"><%= t.form.locationHint %></span>
+                <input type="text" id="location" name="location" maxlength="100" required
+                       aria-describedby="location-hint" placeholder="<%= t.form.locationPlaceholder %>">
+              </div>
+
+              <!-- Revealed by app.js only where the browser can do it. A hint on top
+                   of the fields below, never a replacement for them. -->
+              <div class="gps-box" data-gps hidden>
+                <button type="button" class="btn btn-outline" data-gps-button>
+                  <%- include('partials/icons', { name: 'pin' }) %><%= t.form.gpsButton %>
+                </button>
+                <p class="field-hint" data-gps-status role="status"><%= t.form.gpsHint %></p>
+                <input type="hidden" name="latitude" data-gps-lat>
+                <input type="hidden" name="longitude" data-gps-lng>
+                <input type="hidden" name="accuracy" data-gps-acc>
+              </div>
+
+              <!-- District, sector and cell decide which leader the report reaches.
+                   The sector list is narrowed to the chosen district by app.js; with
+                   JavaScript off every sector is listed and the server rejects a pair
+                   that does not match. -->
+              <div class="field-row">
                 <div class="field">
-                  <label for="location"><%= t.form.locationLabel %> *</label>
-                  <span class="field-hint" id="location-hint"><%= t.form.locationHint %></span>
-                  <input type="text" id="location" name="location" maxlength="100" required
-                         aria-describedby="location-hint"
-                         placeholder="<%= t.form.locationPlaceholder %>">
+                  <label for="district"><%= t.form.districtLabel %> *</label>
+                  <select id="district" name="district" required data-district-select>
+                    <option value=""><%= t.form.chooseDistrict %></option>
+                    <% districts.forEach(function (d) { %>
+                      <option value="<%= d.name %>"><%= d.name %></option>
+                    <% }); %>
+                  </select>
                 </div>
-
-                <!-- District, sector and cell decide which leader the report
-                     reaches, so all three are required. The sector list is
-                     filtered to the chosen district by app.js; with JavaScript
-                     off every sector is listed and the server rejects a pair
-                     that does not match. -->
-                <div class="field-row">
-                  <div class="field">
-                    <label for="district"><%= t.form.districtLabel %> *</label>
-                    <select id="district" name="district" required data-district-select>
-                      <option value=""><%= t.form.chooseDistrict %></option>
-                      <% districts.forEach(function (d) { %>
-                        <option value="<%= d.name %>"><%= d.name %></option>
-                      <% }); %>
-                    </select>
-                  </div>
-
-                  <div class="field">
-                    <label for="sector"><%= t.form.sectorOnlyLabel %> *</label>
-                    <select id="sector" name="sector" required data-sector-select>
-                      <option value=""><%= t.form.chooseSector %></option>
-                      <% districts.forEach(function (d) { %>
-                        <% d.sectors.forEach(function (sec) { %>
-                          <option value="<%= sec %>" data-district="<%= d.name %>"><%= sec %></option>
-                        <% }); %>
-                      <% }); %>
-                    </select>
-                  </div>
-                </div>
-
-                <div class="field-row">
-                  <div class="field">
-                    <label for="cell"><%= t.form.cellLabel %> *</label>
-                    <span class="field-hint" id="cell-hint"><%= t.form.cellHint %></span>
-                    <input type="text" id="cell" name="cell" maxlength="50" required
-                           aria-describedby="cell-hint" placeholder="<%= t.form.cellPlaceholder %>">
-                  </div>
-
-                  <div class="field">
-                    <label for="village">
-                      <%= t.form.villageLabel %> <span class="optional">(<%= t.form.optional %>)</span>
-                    </label>
-                    <input type="text" id="village" name="village" maxlength="50"
-                           placeholder="<%= t.form.villagePlaceholder %>">
-                  </div>
-                </div>
-
                 <div class="field">
-                  <label for="details">
-                    <%= t.form.detailsLabel %> <span class="optional">(<%= t.form.optional %>)</span>
-                  </label>
-                  <textarea id="details" name="details" maxlength="2000"
-                            placeholder="<%= t.form.detailsPlaceholder %>"></textarea>
+                  <label for="sector"><%= t.form.sectorOnlyLabel %> *</label>
+                  <select id="sector" name="sector" required data-sector-select>
+                    <option value=""><%= t.form.chooseSector %></option>
+                    <% districts.forEach(function (d) { %>
+                      <% d.sectors.forEach(function (sec) { %>
+                        <option value="<%= sec %>" data-district="<%= d.name %>"><%= sec %></option>
+                      <% }); %>
+                    <% }); %>
+                  </select>
                 </div>
               </div>
 
-              <div class="form-section">
-                <p class="form-section-title"><%= t.form.contactHeading %></p>
+              <div class="field-row">
+                <div class="field">
+                  <label for="cell"><%= t.form.cellLabel %> *</label>
+                  <input type="text" id="cell" name="cell" maxlength="50" required
+                         aria-describedby="cell-hint" placeholder="<%= t.form.cellPlaceholder %>">
+                  <span class="field-hint" id="cell-hint"><%= t.form.cellHint %></span>
+                </div>
+                <div class="field">
+                  <label for="village"><%= t.form.villageLabel %> <span class="optional">(<%= t.form.optional %>)</span></label>
+                  <input type="text" id="village" name="village" maxlength="50" placeholder="<%= t.form.villagePlaceholder %>">
+                </div>
+              </div>
+            </div>
 
-                <p class="privacy-notice"><%= t.form.privacyNotice %></p>
+            <div class="wizard-step" data-step>
+              <h2 class="step-title"><%= t.ui.stepDetails %></h2>
 
-                <div class="field-row">
-                  <div class="field">
-                    <label for="name">
-                      <%= t.form.nameLabel %> <span class="optional">(<%= t.form.optional %>)</span>
-                    </label>
-                    <input type="text" id="name" name="name" maxlength="50"
-                           placeholder="<%= t.form.namePlaceholder %>">
-                  </div>
+              <div class="field">
+                <label for="details"><%= t.form.detailsLabel %> <span class="optional">(<%= t.form.optional %>)</span></label>
+                <textarea id="details" name="details" maxlength="2000" placeholder="<%= t.form.detailsPlaceholder %>"></textarea>
+              </div>
 
-                  <div class="field">
-                    <label for="contact">
-                      <%= t.form.contactLabel %> <span class="optional">(<%= t.form.optional %>)</span>
-                    </label>
-                    <input type="text" id="contact" name="contact" maxlength="50"
-                           placeholder="<%= t.form.contactPlaceholder %>">
-                  </div>
+              <div class="field">
+                <label for="photo"><%= t.form.photoLabel %> <span class="optional">(<%= t.form.optional %>)</span></label>
+                <span class="field-hint" id="photo-hint"><%= t.form.photoHint %></span>
+                <input type="file" id="photo" name="photo" accept="image/jpeg,image/png,image/*"
+                       aria-describedby="photo-hint" data-photo-input>
+                <p class="field-hint photo-status" data-photo-status role="status"></p>
+                <div class="photo-preview" data-photo-preview hidden>
+                  <img alt="" data-photo-image>
+                  <button type="button" class="btn btn-outline" data-photo-remove><%= t.form.photoRemove %></button>
+                </div>
+              </div>
+            </div>
+
+            <div class="wizard-step" data-step>
+              <h2 class="step-title"><%= t.ui.stepYou %></h2>
+              <p class="privacy-notice"><%= t.form.privacyNotice %></p>
+
+              <div class="field-row">
+                <div class="field">
+                  <label for="name"><%= t.form.nameLabel %> <span class="optional">(<%= t.form.optional %>)</span></label>
+                  <input type="text" id="name" name="name" maxlength="50" autocomplete="name" placeholder="<%= t.form.namePlaceholder %>">
+                </div>
+                <div class="field">
+                  <label for="contact"><%= t.form.contactLabel %> <span class="optional">(<%= t.form.optional %>)</span></label>
+                  <input type="text" id="contact" name="contact" maxlength="50" autocomplete="tel" placeholder="<%= t.form.contactPlaceholder %>">
                 </div>
               </div>
 
-              <button class="btn btn-primary btn-block" type="submit" data-submit
-                      data-label-submitting="<%= t.form.submitting %>">
-                <%- include('partials/icons', { name: 'pencil' }) %><%= t.form.submit %>
+              <div class="review" data-review>
+                <h3><%= t.ui.reviewHeading %></h3>
+                <dl data-review-list></dl>
+              </div>
+            </div>
+
+            <div class="wizard-actions">
+              <button class="btn btn-outline js-only" type="button" data-wizard-back hidden>
+                <%- include('partials/icons', { name: 'back' }) %><%= t.ui.back %>
               </button>
-            </form>
-          </div>
+              <button class="btn btn-primary js-only" type="button" data-wizard-next>
+                <%= t.ui.next %><%- include('partials/icons', { name: 'arrow' }) %>
+              </button>
+              <button class="btn btn-accent no-js-only" type="submit" data-submit data-label-submitting="<%= t.form.submitting %>">
+                <%- include('partials/icons', { name: 'check' }) %><span data-submit-label><%= t.form.submit %></span>
+              </button>
+            </div>
+          </form>
+        </div>
+      </section>
 
-        <% } %>
-
-      </div>
-    </section>
-
+    <% } %>
   </main>
 
   <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>

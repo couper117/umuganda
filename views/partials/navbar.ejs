@@ -1,71 +1,90 @@
 <%
 /**
- * navbar.ejs — the permanent glass bar, shared by every public page.
+ * navbar.ejs — the app's navigation.
  *
- * `current` names the active page so one link can be marked aria-current. The
- * language switcher rewrites only the locale segment, so switching language
- * keeps you on the page you were reading rather than dumping you at the home
- * page — which is what the three separate PHP pages used to do.
+ * Wide screens get a floating glass bar. Phones get a compact bar for language
+ * and theme, plus a bottom tab bar, where a thumb can actually reach. Both are
+ * plain links, and the language menu is a native <details>, so all of it works
+ * without JavaScript.
+ *
+ * The language links rewrite only the locale segment, so switching language
+ * keeps you on the page you were reading.
  */
-
-/** Path suffix for the current page, used to build the language links. */
 const SUFFIX = { home: '', report: '/report', track: '/track', reports: '/reports' };
 const suffix = SUFFIX[current] !== undefined ? SUFFIX[current] : '';
+const links = [
+  { key: 'home', href: '/' + locale, label: t.ui.tabHome },
+  { key: 'track', href: '/' + locale + '/track', label: t.ui.tabTrack },
+  { key: 'reports', href: '/' + locale + '/reports', label: t.ui.tabFeed },
+];
+const activeLang = languages.find(function (l) { return l.locale === locale; });
 %>
-<nav class="navbar" aria-label="<%= t.nav.label %>">
-  <div class="container nav-inner">
-    <a class="navbar-brand" href="/<%= locale %>">
-      <span class="brand-mark" aria-hidden="true">CK</span>
-      <span>Clean<span class="brand-highlight">Kigali</span></span>
+<header class="topbar" data-topbar>
+  <div class="topbar-inner">
+    <a class="brand" href="/<%= locale %>">
+      <%- include('logo') %>
+      <span>Clean Kigali</span>
     </a>
 
-    <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="main-nav"
-            data-nav-toggle data-label-open="<%= t.nav.menu %>" data-label-close="<%= t.nav.closeMenu %>">
-      <span class="visually-hidden"><%= t.nav.menu %></span>
-      <%- include('icons', { name: 'menu' }) %>
-    </button>
+    <nav class="topnav" aria-label="<%= t.nav.label %>" data-topnav>
+      <span class="topnav-pill" data-topnav-pill aria-hidden="true"></span>
+      <% links.forEach(function (l) { %>
+        <a class="topnav-link" href="<%= l.href %>" <%- current === l.key ? 'aria-current="page"' : '' %>><%= l.label %></a>
+      <% }); %>
+    </nav>
 
-    <ul class="nav-links" id="main-nav">
-      <li>
-        <a class="nav-link <%= current === 'home' ? 'is-active' : '' %>" href="/<%= locale %>"
-           <%= current === 'home' ? 'aria-current="page"' : '' %>>
-          <%- include('icons', { name: 'home' }) %><%= t.nav.home %>
-        </a>
-      </li>
-      <li>
-        <a class="nav-link <%= current === 'track' ? 'is-active' : '' %>" href="/<%= locale %>/track"
-           <%= current === 'track' ? 'aria-current="page"' : '' %>>
-          <%- include('icons', { name: 'search' }) %><%= t.nav.track %>
-        </a>
-      </li>
-      <li>
-        <a class="nav-link <%= current === 'reports' ? 'is-active' : '' %>" href="/<%= locale %>/reports"
-           <%= current === 'reports' ? 'aria-current="page"' : '' %>>
-          <%- include('icons', { name: 'list' }) %><%= t.nav.reports %>
-        </a>
-      </li>
-      <li>
-        <a class="nav-link" href="/login">
-          <%- include('icons', { name: 'lock' }) %><%= t.nav.admin %>
-        </a>
-      </li>
-      <li>
-        <div class="lang-switch" role="group" aria-label="<%= t.masthead.chooseLanguage %>">
+    <div class="topbar-actions">
+      <details class="menu" data-menu>
+        <summary aria-label="<%= t.masthead.chooseLanguage %>">
+          <%- include('icons', { name: 'globe' }) %>
+          <span><%= activeLang.shortCode %></span>
+        </summary>
+        <div class="menu-panel">
           <% languages.forEach(function (lang) { %>
-            <a href="/<%= lang.locale %><%= suffix %>" lang="<%= lang.htmlLang %>"
-               title="<%= lang.nativeName %>"
-               <%= lang.locale === locale ? 'aria-current="true"' : '' %>>
-              <%= lang.shortCode %>
-              <span class="visually-hidden"><%= lang.nativeName %></span>
+            <a class="menu-item" href="/<%= lang.locale %><%= suffix %>" lang="<%= lang.htmlLang %>"
+               <%- lang.locale === locale ? 'aria-current="true"' : '' %>>
+              <span><%= lang.nativeName %></span>
+              <% if (lang.locale === locale) { %><%- include('icons', { name: 'check' }) %><% } %>
             </a>
           <% }); %>
+          <div class="menu-sep"></div>
+          <a class="menu-item" href="/login">
+            <span><%= t.nav.admin %></span>
+            <%- include('icons', { name: 'lock' }) %>
+          </a>
+          <button class="menu-item" type="button" data-install hidden>
+            <span><%= t.ui.installApp %></span>
+            <%- include('icons', { name: 'download' }) %>
+          </button>
         </div>
-      </li>
-      <li>
-        <a class="btn-cta" href="/<%= locale %>/report">
-          <%= t.nav.report %><%- include('icons', { name: 'arrow' }) %>
-        </a>
-      </li>
-    </ul>
+      </details>
+
+      <button class="icon-btn" type="button" data-theme-toggle aria-label="<%= t.ui.themeLabel %>" title="<%= t.ui.themeLabel %>" hidden>
+        <span class="theme-light-only"><%- include('icons', { name: 'moon' }) %></span>
+        <span class="theme-dark-only"><%- include('icons', { name: 'sun' }) %></span>
+      </button>
+
+      <a class="btn btn-accent" href="/<%= locale %>/report">
+        <%- include('icons', { name: 'plus' }) %><%= t.nav.report %>
+      </a>
+    </div>
   </div>
+</header>
+
+<nav class="tabbar" aria-label="<%= t.nav.label %>">
+  <a class="tab" href="/<%= locale %>" <%- current === 'home' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'home' }) %><span><%= t.ui.tabHome %></span>
+  </a>
+  <a class="tab" href="/<%= locale %>/track" <%- current === 'track' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'search' }) %><span><%= t.ui.tabTrack %></span>
+  </a>
+  <a class="tab tab-main" href="/<%= locale %>/report" <%- current === 'report' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'plus' }) %><span><%= t.ui.tabReport %></span>
+  </a>
+  <a class="tab" href="/<%= locale %>/reports" <%- current === 'reports' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'list' }) %><span><%= t.ui.tabFeed %></span>
+  </a>
+  <a class="tab" href="/login">
+    <%- include('icons', { name: 'lock' }) %><span><%= t.ui.tabStaff %></span>
+  </a>
 </nav>

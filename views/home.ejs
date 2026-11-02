@@ -2,14 +2,13 @@
 /**
  * home.ejs — the landing page.
  *
- * Hero, live statistics, how it works, a preview of recent reports, and a
- * closing call to action. The submission form and the tracker are no longer
- * here; they are pages of their own, so this page can lead rather than carry
- * everything at once.
- *
  * EJS escapes every interpolation by default, which is what replaces the
  * hand-called e() helper the PHP templates used. Report content is public
  * input, so it must never be emitted with the raw output tag.
+ *
+ * The counters are real and refreshed in place by app.js from stats.json. An
+ * empty table reports zero and the rate shows the "no data" string rather than
+ * an invented percentage.
  */
 %><!DOCTYPE html>
 <html lang="<%= t.htmlLang %>">
@@ -18,117 +17,126 @@
 </head>
 <body data-strings="<%= clientStrings %>">
   <a class="skip-link" href="#main"><%= t.skipLink %></a>
-
   <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
 
   <main id="main">
-
     <section class="hero">
-      <div class="hero-bg" aria-hidden="true"></div>
-      <div class="hero-overlay" aria-hidden="true"></div>
-      <div class="container hero-content">
-        <span class="pill-badge"><%= t.hero.eyebrow %></span>
-        <h1><%= t.hero.heading %></h1>
-        <p class="hero-lead"><%= t.hero.lead %></p>
-        <div class="hero-actions">
-          <a class="btn btn-primary" href="/<%= locale %>/report">
-            <%- include('partials/icons', { name: 'pencil' }) %><%= t.hero.reportCta %>
-          </a>
-          <a class="btn btn-ghost" href="/<%= locale %>/track">
-            <%- include('partials/icons', { name: 'search' }) %><%= t.hero.trackCta %>
-          </a>
-        </div>
-      </div>
-    </section>
+      <div class="hero-photo" aria-hidden="true"></div>
 
-    <!-- Real counts. No placeholder figures: an empty table reports zero and
-         the rate shows the "no data" string rather than an invented percentage. -->
-    <section class="section" aria-labelledby="stats-heading">
-      <div class="container">
-        <h2 id="stats-heading" class="visually-hidden"><%= t.stats.heading %></h2>
-        <div class="stats-grid">
-          <div class="stat-box">
-            <div class="stat-number"><%= stats.total %></div>
-            <div class="stat-label"><%= t.stats.total %></div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number"><%= stats.pending %></div>
-            <div class="stat-label"><%= t.stats.pending %></div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number"><%= stats.resolved %></div>
-            <div class="stat-label"><%= t.stats.resolved %></div>
-          </div>
-          <div class="stat-box">
-            <div class="stat-number"><%= stats.resolutionRate %></div>
-            <div class="stat-label"><%= t.stats.rate %></div>
+      <div class="container hero-grid">
+        <div>
+          <span class="eyebrow hero-eyebrow"><%= t.hero.eyebrow %></span>
+          <h1><%= t.hero.heading %></h1>
+          <p class="hero-lead"><%= t.hero.lead %></p>
+          <div class="hero-actions">
+            <a class="btn btn-accent" href="/<%= locale %>/report">
+              <%- include('partials/icons', { name: 'plus' }) %><%= t.hero.reportCta %>
+            </a>
+            <a class="btn btn-on-photo" href="/<%= locale %>/reports">
+              <%= t.home.viewAll %><%- include('partials/icons', { name: 'arrow' }) %>
+            </a>
           </div>
         </div>
+
+        <aside class="live-card" aria-labelledby="stats-heading" data-live-stats="/<%= locale %>/stats.json">
+          <div class="live-head">
+            <h2 id="stats-heading" style="font-size:inherit"><%= t.ui.liveHeading %></h2>
+            <span class="live-badge"><span class="live-dot" aria-hidden="true"></span><%= t.ui.live %></span>
+          </div>
+          <div class="live-stats">
+            <div class="live-stat">
+              <span class="live-value" data-count data-stat="total"><%= stats.total %></span>
+              <span class="live-label"><%= t.stats.total %></span>
+            </div>
+            <div class="live-stat">
+              <span class="live-value" data-count data-stat="pending"><%= stats.pending %></span>
+              <span class="live-label"><%= t.stats.pending %></span>
+            </div>
+            <div class="live-stat">
+              <span class="live-value" data-count data-stat="resolved"><%= stats.resolved %></span>
+              <span class="live-label"><%= t.stats.resolved %></span>
+            </div>
+            <div class="live-stat">
+              <span class="live-value" data-count data-stat="resolutionRate"><%= stats.resolutionRate %></span>
+              <span class="live-label"><%= t.stats.rate %></span>
+            </div>
+          </div>
+
+          <form class="quick-track" method="get" action="/<%= locale %>/track">
+            <label for="quick-ref"><%= t.ui.quickTrackLabel %></label>
+            <div class="quick-track-row">
+              <input type="text" id="quick-ref" name="ref" maxlength="24" autocomplete="off"
+                     placeholder="<%= t.tracker.placeholder %>">
+              <button class="btn btn-primary" type="submit"><%= t.ui.quickTrackButton %></button>
+            </div>
+          </form>
+        </aside>
       </div>
+
+      <svg class="hero-hills" viewBox="0 0 1440 190" preserveAspectRatio="none" aria-hidden="true" focusable="false">
+        <path fill="var(--paper)" opacity="0.22" d="M0 96 150 40l170 66 190-88 210 92 180-70 210 82 170-58 160 62v64H0Z"/>
+        <path fill="var(--paper)" opacity="0.5" d="M0 134 180 82l200 62 220-74 240 84 210-62 200 66 190-48v80H0Z"/>
+        <path fill="var(--paper)" d="M0 168 240 122l260 44 260-54 280 58 220-40 180 34v26H0Z"/>
+      </svg>
     </section>
 
-    <section class="section section-soft" aria-labelledby="how-heading">
-      <div class="container">
-        <div class="center-text">
-          <span class="eyebrow"><%= t.masthead.operator %></span>
+    <section class="section container" aria-labelledby="how-heading">
+      <div class="section-head" data-reveal>
+        <div>
+          <span class="eyebrow"><%= t.ui.howEyebrow %></span>
           <h2 id="how-heading"><%= t.home.howHeading %></h2>
           <p><%= t.home.howIntro %></p>
         </div>
-
-        <!-- Numbered because these genuinely are a sequence: you cannot track a
-             reference before you have been given one. -->
-        <ol class="card-grid" style="list-style:none;margin:0;padding:0;">
-          <% t.home.steps.forEach(function (step, i) { %>
-            <li class="card card-step">
-              <span class="step-number" aria-hidden="true"><%= i + 1 %></span>
-              <span class="icon-circle">
-                <%- include('partials/icons', { name: ['pencil', 'clip', 'check'][i] || 'other' }) %>
-              </span>
-              <h3><%= step.title %></h3>
-              <p><%= step.body %></p>
-            </li>
-          <% }); %>
-        </ol>
       </div>
+      <ol class="steps">
+        <% t.home.steps.forEach(function (step, i) { %>
+          <li class="step-card" data-reveal style="--i:<%= i %>">
+            <span class="step-number" aria-hidden="true"><%= i + 1 %></span>
+            <span class="step-icon"><%- include('partials/icons', { name: ['pencil', 'clip', 'check'][i] || 'other' }) %></span>
+            <h3><%= step.title %></h3>
+            <p><%= step.body %></p>
+          </li>
+        <% }); %>
+      </ol>
     </section>
 
-    <section class="section" aria-labelledby="recent-heading">
-      <div class="container">
-        <div class="center-text">
+    <section class="container" aria-labelledby="recent-heading">
+      <div class="section-head" data-reveal>
+        <div>
+          <span class="eyebrow"><%= t.ui.feedEyebrow %></span>
           <h2 id="recent-heading"><%= t.home.recentHeading %></h2>
           <p><%= t.home.recentIntro %></p>
         </div>
-
-        <% if (reports.length === 0) { %>
-          <div class="empty-state">
-            <%- include('partials/icons', { name: 'inbox' }) %>
-            <p><%= t.feed.empty %></p>
-          </div>
-        <% } else { %>
-          <div class="feed-grid">
-            <% reports.forEach(function (r) { %>
-              <%- include('partials/feedcard', { t: t, r: r }) %>
-            <% }); %>
-          </div>
-          <p style="text-align:center;margin-top:40px;">
-            <a class="btn btn-outline" href="/<%= locale %>/reports">
-              <%= t.home.viewAll %><%- include('partials/icons', { name: 'arrow' }) %>
-            </a>
-          </p>
+        <% if (reports.length > 0) { %>
+          <a class="btn btn-outline" href="/<%= locale %>/reports">
+            <%= t.home.viewAll %><%- include('partials/icons', { name: 'arrow' }) %>
+          </a>
         <% } %>
       </div>
+
+      <% if (reports.length === 0) { %>
+        <div class="empty-state">
+          <%- include('partials/icons', { name: 'inbox' }) %>
+          <p><%= t.feed.empty %></p>
+        </div>
+      <% } else { %>
+        <div class="feed-grid">
+          <% reports.forEach(function (r, i) { %>
+            <div data-reveal style="--i:<%= i %>;display:grid"><%- include('partials/feedcard', { t: t, r: r }) %></div>
+          <% }); %>
+        </div>
+      <% } %>
     </section>
 
-    <section class="cta-band">
-      <div class="container">
+    <section class="section container">
+      <div class="closing" data-reveal>
         <h2><%= t.home.ctaHeading %></h2>
         <p><%= t.home.ctaBody %></p>
-        <a class="btn btn-primary" href="/<%= locale %>/report">
-          <%- include('partials/icons', { name: 'pencil' }) %><%= t.home.ctaButton %>
+        <a class="btn btn-accent" href="/<%= locale %>/report">
+          <%- include('partials/icons', { name: 'plus' }) %><%= t.home.ctaButton %>
         </a>
       </div>
     </section>
-
   </main>
 
   <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>

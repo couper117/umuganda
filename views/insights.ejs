@@ -1,0 +1,172 @@
+<%
+/**
+ * insights.ejs — trends and service targets, within the viewer's scope.
+ *
+ * The charts are server-rendered from numbers only (lib/insights.ts), so there is
+ * no chart library to load and nothing a resident typed can reach the markup.
+ * Every chart has a text equivalent in its label and the figures beside it.
+ */
+%><!DOCTYPE html>
+<html lang="en">
+<head>
+  <%- include('partials/staffhead', { pageTitle: 'Insights' }) %>
+</head>
+<body class="staff">
+  <a class="skip-link" href="#insights">Skip to the insights</a>
+  <%- include('partials/adminnav', { active: 'insights', openCount: stats.open }) %>
+
+  <main class="workspace" id="insights">
+    <header class="work-head">
+      <div>
+        <h1>Insights</h1>
+        <p>
+          <% if (scopeLabel) { %>How <strong><%= scopeLabel %></strong> cell is doing.<% } else { %>How the service is doing across Kigali.<% } %>
+          Every figure is counted live from the reports themselves.
+        </p>
+      </div>
+    </header>
+
+    <section class="kpi-grid" aria-label="Key figures">
+      <div class="kpi" data-reveal>
+        <span class="kpi-value" data-count><%= stats.open %></span>
+        <span class="kpi-label">Open now</span>
+      </div>
+      <div class="kpi kpi-alert" data-reveal style="--i:1">
+        <span class="kpi-value" data-count><%= stats.overdue %></span>
+        <span class="kpi-label">Overdue</span>
+      </div>
+      <div class="kpi" data-reveal style="--i:2">
+        <span class="kpi-value" data-count><%= medianResolution %></span>
+        <span class="kpi-label">Median time to resolve</span>
+      </div>
+      <div class="kpi" data-reveal style="--i:3">
+        <span class="kpi-value" data-count><%= targetRate %></span>
+        <span class="kpi-label">Resolved on target</span>
+      </div>
+    </section>
+
+    <section class="panel-card" aria-labelledby="trend-heading" data-reveal>
+      <div class="card-head">
+        <div>
+          <h2 id="trend-heading" class="card-title">Last <%= days %> days</h2>
+          <p class="row-meta"><%= totals.created %> reported, <%= totals.resolved %> resolved</p>
+        </div>
+        <ul class="chart-legend" aria-hidden="true">
+          <li><span class="swatch swatch-created"></span>Reported</li>
+          <li><span class="swatch swatch-resolved"></span>Resolved</li>
+        </ul>
+      </div>
+
+      <div class="chart-wrap" data-chart>
+        <svg class="trend-chart" viewBox="-28 -8 <%= chart.width + 36 %> <%= chart.height + 32 %>" role="img"
+             aria-label="Reports filed and resolved per day over the last <%= days %> days: <%= totals.created %> reported, <%= totals.resolved %> resolved.">
+          <% chart.gridlines.forEach(function (g) { %>
+            <line class="chart-grid" x1="0" x2="<%= chart.width %>" y1="<%= g.y %>" y2="<%= g.y %>"></line>
+            <text class="chart-axis" x="-8" y="<%= g.y + 3 %>" text-anchor="end"><%= g.value %></text>
+          <% }); %>
+          <line class="chart-base" x1="0" x2="<%= chart.width %>" y1="<%= chart.height %>" y2="<%= chart.height %>"></line>
+          <% chart.bars.forEach(function (b, i) { %>
+            <g class="chart-day" data-day="<%= b.day %>" data-created="<%= b.created %>" data-resolved="<%= b.resolved %>" style="--i:<%= i %>">
+              <title><%= b.day %>: <%= b.created %> reported, <%= b.resolved %> resolved</title>
+              <rect class="chart-hit" x="<%= b.x %>" y="0" width="<%= b.width * 2 + 2 %>" height="<%= chart.height %>"></rect>
+              <rect class="bar-created" x="<%= b.x %>" y="<%= chart.height - b.createdHeight %>" width="<%= b.width %>" height="<%= b.createdHeight %>" rx="2"></rect>
+              <rect class="bar-resolved" x="<%= b.x + b.width + 1 %>" y="<%= chart.height - b.resolvedHeight %>" width="<%= b.width %>" height="<%= b.resolvedHeight %>" rx="2"></rect>
+              <% if (b.showLabel) { %>
+                <text class="chart-axis" x="<%= b.x + b.width %>" y="<%= chart.height + 17 %>" text-anchor="middle"><%= b.label %></text>
+              <% } %>
+            </g>
+          <% }); %>
+        </svg>
+        <div class="chart-tip" data-chart-tip hidden></div>
+      </div>
+    </section>
+
+    <div class="card-columns">
+      <section class="panel-card" aria-labelledby="status-heading" data-reveal>
+        <h2 id="status-heading" class="card-title">By status</h2>
+        <div class="donut-row">
+          <div class="donut" style="background: conic-gradient(<%= donut.gradient %>)" role="img"
+               aria-label="<%= donut.total %> reports by status">
+            <div class="donut-hole"><strong data-count><%= donut.total %></strong><span>reports</span></div>
+          </div>
+          <ul class="donut-legend">
+            <% donut.slices.forEach(function (s) { %>
+              <li>
+                <span class="swatch" style="background: var(--st-<%= s.key %>)"></span>
+                <span class="donut-name"><%= s.label %></span>
+                <span class="donut-count"><%= s.count %></span>
+              </li>
+            <% }); %>
+          </ul>
+        </div>
+      </section>
+
+      <section class="panel-card" aria-labelledby="category-heading" data-reveal style="--i:1">
+        <h2 id="category-heading" class="card-title">By category</h2>
+        <% if (categories.length === 0) { %>
+          <p class="row-meta">No reports yet.</p>
+        <% } %>
+        <ul class="bar-list">
+          <% categories.forEach(function (c, i) { %>
+            <li>
+              <span class="bar-label"><%= c.label %></span>
+              <span class="bar-track"><span class="bar-fill" style="width: <%= c.pct %>%; --i:<%= i %>"></span></span>
+              <span class="bar-value"><%= c.count %></span>
+            </li>
+          <% }); %>
+        </ul>
+      </section>
+
+      <section class="panel-card" aria-labelledby="trust-heading" data-reveal>
+        <h2 id="trust-heading" class="card-title">What residents say</h2>
+        <dl class="figure-list">
+          <div><dt>Fixes confirmed by the reporter</dt><dd><%= confirmed %></dd></div>
+          <div><dt>Closures disputed by the reporter</dt><dd><%= disputed %></dd></div>
+          <div><dt>Share of all reports resolved</dt><dd><%= resolvedRate %></dd></div>
+          <div><dt>Resolved reports with a target</dt><dd><%= closedWithTarget %></dd></div>
+        </dl>
+      </section>
+
+      <section class="panel-card" aria-labelledby="targets-heading" data-reveal style="--i:1">
+        <h2 id="targets-heading" class="card-title">Service targets</h2>
+        <dl class="figure-list">
+          <div><dt>High urgency</dt><dd><%= slaHours.high %> hours</dd></div>
+          <div><dt>Medium urgency</dt><dd><%= slaHours.medium / 24 %> days</dd></div>
+          <div><dt>Low urgency</dt><dd><%= slaHours.low / 24 %> days</dd></div>
+        </dl>
+        <p class="row-meta">A report counts as overdue once it passes its target while still open.</p>
+      </section>
+    </div>
+
+    <% if (!scopeLabel) { %>
+      <section class="panel-card" aria-labelledby="cells-heading" data-reveal>
+        <h2 id="cells-heading" class="card-title">Busiest cells</h2>
+        <% if (cells.length === 0) { %>
+          <p class="row-meta">No reports carry a cell yet.</p>
+        <% } else { %>
+          <div class="table-scroll">
+            <table class="data-table">
+              <thead>
+                <tr><th scope="col">Cell</th><th scope="col">Open</th><th scope="col">Overdue</th><th scope="col">All time</th></tr>
+              </thead>
+              <tbody>
+                <% cells.forEach(function (c) { %>
+                  <tr>
+                    <th scope="row"><%= c.cell %></th>
+                    <td><%= c.open %></td>
+                    <td class="<%= c.overdue > 0 ? 'is-critical' : '' %>"><%= c.overdue %></td>
+                    <td><%= c.total %></td>
+                  </tr>
+                <% }); %>
+              </tbody>
+            </table>
+          </div>
+        <% } %>
+      </section>
+    <% } %>
+  </main>
+
+  <div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
+  <script src="/js/admin.js"></script>
+</body>
+</html>

@@ -24,10 +24,22 @@ export interface ReportRow {
   district: string | null;
   cell: string | null;
   village: string | null;
+  public_token: string | null;
+  due_at: Date | null;
+  updated_at: Date | null;
+  resolved_at: Date | null;
+  confirmed_at: Date | null;
+  /** DECIMAL columns arrive from the driver as strings. */
+  latitude: string | null;
+  longitude: string | null;
+  location_accuracy: number | null;
+  photo: string | null;
+  duplicate_of: number | null;
 }
 
 /** The subset of a report that is safe to show the public: no reporter name,
- *  no contact details, no IP address. */
+ *  no contact details, no IP address, no token, no coordinates and no photo.
+ *  This is what the open feed shows, to anyone. */
 export interface PublicReport {
   id: number;
   time: Date | null;
@@ -41,6 +53,34 @@ export interface PublicReport {
   cell: string | null;
   village: string | null;
 }
+
+/**
+ * What the holder of a report's reference may see. Adds the deadline, the
+ * closure details and the photo to the public shape; still no reporter details.
+ * `public_token` is here to be checked and is never sent to the browser.
+ */
+export interface TrackedReport extends PublicReport {
+  public_token: string | null;
+  due_at: Date | null;
+  resolved_at: Date | null;
+  confirmed_at: Date | null;
+  photo: string | null;
+}
+
+/** A row of the `report_events` table. */
+export interface ReportEventRow {
+  id: number;
+  report_id: number;
+  occurred_at: Date;
+  kind: EventKind;
+  status_from: string | null;
+  status_to: string | null;
+  note: string | null;
+  is_public: number;
+  actor: string | null;
+}
+
+export type EventKind = 'status' | 'note' | 'confirmed' | 'reopened' | 'duplicate';
 
 /** A row of the `admin_users` table. */
 export interface AdminUserRow {
@@ -71,6 +111,9 @@ export interface ValidatedReport {
   details: string | null;
   name: string | null;
   contact: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  locationAccuracy: number | null;
 }
 
 /** Public counters shown on every portal page. */
@@ -86,8 +129,14 @@ export interface PortalStats {
 /** Dashboard counters. */
 export interface AdminStats {
   total: number;
-  pending: number;
+  /** Received, nobody has started: status = pending. */
+  received: number;
+  inProgress: number;
+  reopened: number;
+  /** Everything still needing work: the three above. */
+  open: number;
   done: number;
+  overdue: number;
   high: number;
 }
 
@@ -107,6 +156,14 @@ export type TrackResponse =
   | { success: true; data: TrackPayload }
   | { success: false; message: string };
 
+export interface TrackEvent {
+  kind: EventKind | 'created';
+  time: string;
+  /** Set when the event moved the report to a new status. */
+  status: Status | null;
+  note: string | null;
+}
+
 export interface TrackPayload {
   id: string;
   time: string | null;
@@ -116,7 +173,20 @@ export interface TrackPayload {
   sector: string;
   details: string;
   status: Status;
+  /** Target date while the report is open; null once closed or if unknown. */
+  dueBy: string | null;
+  overdue: boolean;
+  photoUrl: string | null;
+  events: TrackEvent[];
+  canConfirm: boolean;
+  canReopen: boolean;
+  confirmed: boolean;
 }
+
+/** What POST /:locale/track/feedback returns. */
+export type FeedbackResponse =
+  | { success: true; data: TrackPayload; message: string }
+  | { success: false; message: string };
 
 /** What an account is allowed to do. */
 export type Role = 'superadmin' | 'leader';

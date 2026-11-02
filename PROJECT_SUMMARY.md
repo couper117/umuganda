@@ -98,6 +98,75 @@ rather than `window.confirm()`.
 
 ---
 
+## Interface
+
+**Design system.** `public/style.css` holds the tokens and public components, and
+`public/admin.css` the staff app. The palette is Kigali at dawn, with full light and
+dark themes defined as tokens. The pattern and the logo come from imigongo, the
+geometric art of Rwanda. Headings use Bricolage Grotesque and text uses Figtree, both
+self-hosted under the SIL Open Font License, because the CSP allows no font hosts.
+
+**Navigation.** The public site has a floating bar on wide screens and a bottom tab
+bar on phones. Staff get a side rail that folds to icons, then a top bar and tabs on
+a phone.
+
+**App behaviour.** The report form is a four-step flow. Staff work in a slide-over
+panel on each report, with `/` to search and `j`, `k`, Enter and Escape to move. The
+home page and dashboard refresh themselves (`/:locale/stats.json`, `/admin/live`), and
+the tracker remembers references on the device. Pages cross-fade with view transitions
+where the browser supports them.
+
+**Without JavaScript.** Everything still works: the form shows all its steps at once,
+and menus and the staff panel are native `<details>` elements. All motion respects
+`prefers-reduced-motion`.
+
+---
+
+## Workflow and features added in the modernisation pass
+
+**Report lifecycle.** Five statuses: `pending` (Received), `in_progress`, `done`,
+`notdone` and `reopened`. Allowed moves live in `src/lib/workflow.ts` and are
+enforced under a row lock in `src/services/reports.ts`. Only a reporter can set
+`reopened`. Every change is written to `report_events`, which drives the history
+on the tracker and the dashboard. Staff notes are internal unless marked public.
+
+**Service targets.** High 24 hours, medium 3 days, low 7 days, set in
+`src/config.ts`. Open reports are on track, due soon or overdue. A reopened report
+gets a fresh deadline.
+
+**Priority queue.** The dashboard sorts by a score combining urgency, deadline,
+linked reports, disputes and age. It lists every open report plus the 200 most
+recently closed; the CSV export holds the full archive.
+
+**References.** New reports get `CK-<id>-<token>`, and a lookup must present the
+token. Older reports with no token still answer to `CK-<id>`, but cannot give
+feedback.
+
+**Reporter feedback.** On a closed report the reference holder can confirm the fix
+or dispute it within 14 days (`POST /:locale/track/feedback`).
+
+**Duplicate detection.** A new report is linked, never merged, to an open report of
+the same category from the last 7 days: within 150 m when both have GPS, otherwise
+in the same cell (`src/lib/duplicates.ts`).
+
+**Photos and GPS.** One optional photo per report, re-encoded in the browser and
+stripped of metadata again on the server (`src/lib/image.ts`), stored in `uploads/`
+and served from `/media/:name` under an unguessable name. GPS is optional and kept
+only when plausible for Kigali. Neither appears on the public feed.
+
+**Insights and export.** `/admin/insights` shows trends and targets as server-rendered
+SVG. `/admin/export.csv` is scoped to the viewer, audited, guarded against spreadsheet
+formulas, and leaves out IP addresses.
+
+**Installable site.** A manifest and service worker (`public/sw.js`) cache static
+assets and show an offline notice. Report drafts stay on the device, without name or
+contact details.
+
+**Tests.** `npm test` runs the unit tests in `test/` against the pure logic. There
+is no automated browser or database test suite in the repository yet.
+
+---
+
 ## Structure
 
 ```
@@ -132,7 +201,8 @@ Clean/
 npm run dev        # tsx watch src/server.ts
 npm run build      # server -> dist/, client -> public/js/
 npm start          # node dist/server.js
-npm run typecheck  # both projects, --noEmit
+npm run typecheck  # server, client and tests, no output
+npm test           # unit tests for the pure logic in src/lib
 ```
 
 `tsconfig.json` is strict throughout, including `noUncheckedIndexedAccess` and
@@ -149,7 +219,8 @@ loudly at boot rather than on the first request that needs it.
 | `reports` | Submissions, plus `status` and submitter IP. Indexed on status, urgency, time. |
 | `admin_users` | Dashboard accounts: bcrypt hash, last login, failure counter, lockout expiry. |
 | `rate_limits` | Sliding-window event log; old rows swept opportunistically (~2% of writes). |
-| `audit_log` | Who did what, when, from where — status changes, deletions, logins, lockouts. |
+| `audit_log` | Who did what, when, from where — status changes, notes, exports, deletions, logins, lockouts. |
+| `report_events` | Each report's history: status moves, notes (public or internal), reporter confirmations and disputes, linked reports. |
 | `sessions` | Session store, created by express-mysql-session; expired rows swept every 15 min. |
 
 Sessions live in MySQL, not in process memory, so a restart does not sign every
@@ -211,12 +282,13 @@ admin out and a second process would see the same sessions.
 
 **Recommended**
 
-7. **Sequential references leak.** Rate limiting makes bulk scraping
-   impractical but `CK-42` is still a reference someone can simply guess. A
-   random token column (`CK-<id>-<token>`) would close it.
+7. **Older references stay guessable.** New reports carry a token, but reports
+   filed before tokens existed still answer to a bare `CK-<id>`, behind the rate
+   limit, so that references already handed out keep working.
 8. **No retention policy.** Reporter contact details and IPs are kept
    indefinitely. If Rwanda's data protection law applies, this needs a written
    policy — the short notice beside the contact fields is not one.
-9. **Paginate the dashboard.** It still loads every report in one query.
+9. **Paginate the dashboard.** It loads every open report plus the 200 most recently
+   closed, so a very large open backlog would still be one long page.
 10. **Drop `'unsafe-inline'` from `style-src`** once confirmed against every page.
-11. **Back up the database** on a schedule, and test a restore.
+11. **Back up the database and `uploads/`** on a schedule, and test a restore.

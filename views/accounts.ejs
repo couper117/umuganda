@@ -13,50 +13,20 @@
 %><!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Accounts — Clean Kigali</title>
+  <%- include('partials/staffhead', { pageTitle: 'Accounts' }) %>
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/admin.css">
 </head>
-<body class="admin-body" data-districts="<%= JSON.stringify(districts) %>">
+<body class="staff">
   <a class="skip-link" href="#main">Skip to main content</a>
+  <%- include('partials/adminnav', { active: 'accounts' }) %>
 
-  <nav class="navbar" aria-label="Dashboard navigation">
-    <div class="container nav-inner">
-      <a class="navbar-brand" href="/admin">
-        <span class="brand-mark" aria-hidden="true">CK</span>
-        <span>Clean<span class="brand-highlight">Kigali</span></span>
-      </a>
-
-      <span class="admin-tag">Accounts</span>
-
-      <div class="admin-identity">
-        <a class="nav-link" href="/admin">Report queue</a>
-        <a class="nav-link" href="/admin/password">Change password</a>
-        <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
-        <form method="POST" action="/logout" class="logout-form">
-          <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
-          <button type="submit" class="btn-cta btn-cta-quiet">Sign out</button>
-        </form>
+  <main id="main" class="workspace">
+    <header class="work-head">
+      <div>
+        <h1>Accounts</h1>
+        <p>A leader sees only the reports filed in their cell. You keep the full queue.</p>
       </div>
-    </div>
-  </nav>
-
-  <header class="page-head">
-    <div class="container">
-      <h1>Accounts</h1>
-      <p>
-        Create a leader for a cell and they will see only the reports filed in that cell.
-        You keep the full queue.
-      </p>
-    </div>
-  </header>
-
-  <main id="main" class="container dashboard">
+    </header>
 
     <% if (error) { %>
       <div class="flash flash-error" role="alert"><span><%= error %></span></div>
@@ -66,33 +36,33 @@
     <% } %>
 
     <!-- Create a leader -->
-    <section class="filter-bar" aria-labelledby="create-heading">
-      <h2 id="create-heading" class="hotspots-heading">Add a cell leader</h2>
+    <section class="panel-card" aria-labelledby="create-heading">
+      <h2 id="create-heading" class="card-title">Add a cell leader</h2>
 
       <form method="POST" action="/admin/accounts" autocomplete="off" data-leader-form>
         <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
 
         <div class="field-row">
           <div class="field">
-            <label class="field-label" for="username">Username</label>
-            <input type="text" id="username" name="username" class="field-input" required maxlength="50"
+            <label for="username">Username</label>
+            <input type="text" id="username" name="username" required maxlength="50"
                    autocapitalize="none" autocorrect="off" spellcheck="false"
                    aria-describedby="username-hint">
-            <p class="password-rules" id="username-hint">3–50 characters: letters, numbers, dot, underscore or hyphen.</p>
+            <p class="field-hint" id="username-hint">3–50 characters: letters, numbers, dot, underscore or hyphen.</p>
           </div>
 
           <div class="field">
-            <label class="field-label" for="password">Password</label>
-            <input type="password" id="password" name="password" class="field-input" required maxlength="200"
+            <label for="password">Password</label>
+            <input type="password" id="password" name="password" required maxlength="200"
                    autocomplete="new-password" aria-describedby="password-hint">
-            <p class="password-rules" id="password-hint">At least 12 characters, with letters and numbers.</p>
+            <p class="field-hint" id="password-hint">At least 12 characters, with letters and numbers.</p>
           </div>
         </div>
 
         <div class="field-row">
           <div class="field">
-            <label class="field-label" for="district">District</label>
-            <select id="district" name="district" class="field-input" required data-district-select>
+            <label for="district">District</label>
+            <select id="district" name="district" required data-district-select>
               <option value="">Choose a district…</option>
               <% districts.forEach(function (d) { %>
                 <option value="<%= d.name %>"><%= d.name %></option>
@@ -101,8 +71,8 @@
           </div>
 
           <div class="field">
-            <label class="field-label" for="sector">Sector</label>
-            <select id="sector" name="sector" class="field-input" required data-sector-select>
+            <label for="sector">Sector</label>
+            <select id="sector" name="sector" required data-sector-select>
               <option value="">Choose a sector…</option>
               <% districts.forEach(function (d) { %>
                 <% d.sectors.forEach(function (sec) { %>
@@ -113,16 +83,16 @@
           </div>
 
           <div class="field">
-            <label class="field-label" for="cell">Cell</label>
-            <input type="text" id="cell" name="cell" class="field-input" required maxlength="50"
+            <label for="cell">Cell</label>
+            <input type="text" id="cell" name="cell" required maxlength="50"
                    aria-describedby="cell-hint" placeholder="Rukiri I">
-            <p class="password-rules" id="cell-hint">
+            <p class="field-hint" id="cell-hint">
               Type it exactly as residents will see it — this is what routes reports to this leader.
             </p>
           </div>
         </div>
 
-        <button type="submit" class="btn btn-primary">Create leader account</button>
+        <button type="submit" class="btn btn-primary form-action">Create leader account</button>
       </form>
     </section>
 
@@ -133,59 +103,44 @@
         <p class="queue-count"><%= accounts.length %> total</p>
       </div>
 
-      <ul class="report-list">
+      <ul class="account-list">
         <% accounts.forEach(function (a) { %>
-          <li class="report-card account-row<%= a.isActive ? '' : ' is-inactive' %>">
-
-            <div class="col-report">
-              <span class="row-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round">
-                  <circle cx="12" cy="8" r="3.5"/><path d="M4.5 20a7.5 7.5 0 0 1 15 0"/>
-                </svg>
-              </span>
-              <div class="row-titles">
+          <li class="account-row<%= a.isActive ? '' : ' is-inactive' %>">
+            <div class="account-who">
+              <span class="avatar" aria-hidden="true"><%= String(a.username).charAt(0).toUpperCase() %></span>
+              <div>
                 <h3 class="row-title"><%= a.username %></h3>
-                <p class="row-meta">
-                  <%= a.role === 'superadmin' ? 'Superadmin' : 'Cell leader' %><%
-                  %><%= a.id === adminId ? ' · you' : '' %>
-                </p>
+                <p class="row-meta"><%= a.role === 'superadmin' ? 'Superadmin' : 'Cell leader' %><%= a.id === adminId ? ' · you' : '' %></p>
               </div>
             </div>
 
-            <div class="col-where" data-label="Area">
+            <div>
               <% if (a.role === 'superadmin') { %>
                 <p class="row-strong">All of Kigali</p>
-                <p class="row-quiet">Not scoped</p>
+                <p class="row-meta">Not scoped</p>
               <% } else { %>
                 <p class="row-strong"><%= a.cell || 'No cell set' %></p>
-                <p class="row-quiet"><%= a.sector || '—' %><%= a.district ? ', ' + a.district : '' %></p>
+                <p class="row-meta"><%= a.sector || '—' %><%= a.district ? ', ' + a.district : '' %></p>
               <% } %>
             </div>
 
-            <div class="col-who" data-label="Last sign-in">
-              <p class="row-strong"><%= a.lastLogin ? a.lastLogin.toISOString().slice(0, 16).replace('T', ' ') : 'Never' %></p>
-              <p class="row-quiet">Added <%= a.createdAt.toISOString().slice(0, 10) %></p>
+            <div>
+              <p class="row-strong"><%= a.lastLogin ? a.lastLogin.toISOString().slice(0, 16).replace('T', ' ') : 'Never signed in' %></p>
+              <p class="row-meta">Added <%= a.createdAt.toISOString().slice(0, 10) %></p>
             </div>
 
-            <div class="col-flags">
-              <span class="status-chip <%= a.isActive ? 'chip-on' : 'chip-off' %>">
-                <%= a.isActive ? 'Active' : 'Deactivated' %>
-              </span>
-              <% if (a.isLocked) { %>
-                <span class="badge badge-high">Locked out</span>
-              <% } %>
+            <div class="account-flags">
+              <span class="chip <%= a.isActive ? 'chip-done' : 'chip-notdone' %>"><%= a.isActive ? 'Active' : 'Deactivated' %></span>
+              <% if (a.isLocked) { %><span class="chip chip-high">Locked out</span><% } %>
             </div>
 
-            <div class="col-actions">
-              <% if (a.id === adminId) { %>
-                <span class="row-quiet">This is you</span>
-              <% } else { %>
+            <div class="account-action">
+              <% if (a.id !== adminId) { %>
                 <form method="POST" action="/admin/accounts/active">
                   <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
                   <input type="hidden" name="id" value="<%= a.id %>">
                   <input type="hidden" name="active" value="<%= a.isActive ? '0' : '1' %>">
-                  <button type="submit" class="<%= a.isActive ? 'btn btn-danger' : 'btn btn-secondary' %>">
+                  <button type="submit" class="btn <%= a.isActive ? 'btn-outline' : 'btn-primary' %> btn-small">
                     <%= a.isActive ? 'Deactivate' : 'Reactivate' %>
                   </button>
                 </form>

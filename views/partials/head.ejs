@@ -2,14 +2,20 @@
 /**
  * head.ejs — document head, shared by every public page.
  *
- * `meta` carries the per-page title and description; the four pages each pass
- * their own, so a shared link says which page it actually is.
+ * `meta` carries the per-page title and description; each page passes its own,
+ * so a shared link says which page it actually is. shell.js runs before first
+ * paint, so a visitor who chose dark never sees a flash of light.
  */
 %><meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title><%= meta.title %></title>
 <meta name="description" content="<%= meta.description %>">
-<meta name="theme-color" content="#00a859">
-<link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
+<meta name="theme-color" content="#f4f1e8" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0d1411" media="(prefers-color-scheme: dark)">
+<script src="/js/shell.js"></script>
+<link rel="preload" href="/fonts/bricolage-latin.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="/fonts/figtree-latin.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="/style.css">
-<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2300a859'/><text x='16' y='22' font-family='sans-serif' font-size='15' font-weight='bold' fill='white' text-anchor='middle'>CK</text></svg>">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" href="/icons/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">

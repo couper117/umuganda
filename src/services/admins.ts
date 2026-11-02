@@ -75,7 +75,10 @@ export async function createAdmin(
   const hash = await bcrypt.hash(password as string, BCRYPT_ROUNDS);
 
   try {
-    await execute('INSERT INTO admin_users (username, password_hash, created_at) VALUES (?, ?, ?)', [
+    // Explicitly superadmin. The column default is 'leader', and a leader with no
+    // cell sees an empty queue and cannot create accounts, which on a new install
+    // would leave nobody able to run the service.
+    await execute("INSERT INTO admin_users (username, password_hash, created_at, role) VALUES (?, ?, ?, 'superadmin')", [
       username,
       hash,
       new Date(),

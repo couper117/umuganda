@@ -2,11 +2,6 @@
  * lib/format.ts — presentation helpers shared by the templates.
  */
 
-/** Reference code shown to the public, e.g. CK-21. */
-export function referenceCode(id: number): string {
-  return `CK-${id}`;
-}
-
 /**
  * Format a timestamp as `YYYY-MM-DD HH:mm`.
  *

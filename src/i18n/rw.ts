@@ -100,7 +100,7 @@ export const rw: Strings = {
   stats: {
     heading: "Imibare y'iyi serivisi",
     total: 'Raporo Zose',
-    pending: 'Zirimo Gukorwa',
+    pending: 'Bitarakemuka',
     resolved: 'Ibyakemutse',
     rate: "Igipimo Cy'Ibyakemutse",
     // NEW
@@ -113,8 +113,8 @@ export const rw: Strings = {
     // NEW
     inputLabel: "Nimero y'iraporo",
     // NEW
-    inputHint: "Nimero mwahawe igihe mwohereza, urugero CK-21.",
-    placeholder: 'CK-21',
+    inputHint: "Nimero mwahawe igihe mwohereza, urugero CK-21-7KQ4MZ.",
+    placeholder: "CK-21-7KQ4MZ",
     submit: 'Kurikirana',
     // NEW
     working: 'Turareba…',
@@ -162,6 +162,11 @@ export const rw: Strings = {
     submit: 'Ohereza Iraporo',
     // NEW
     submitting: 'Turohereza…',
+    photoLabel: "Ongeraho ifoto",
+    photoHint: "Ifoto ifasha itsinda kumenya icyo rizazana. Amakuru y’aho ifoto yafatiwe arasibwa.",
+    photoRemove: "Kuraho ifoto",
+    gpsButton: "Koresha aho ndi ubu",
+    gpsHint: "Si ngombwa. Bifasha itsinda kubona aho ari neza. Ugomba kuzuza n’ibisabwa hasi.",
   },
 
   success: {
@@ -174,6 +179,7 @@ export const rw: Strings = {
     track: 'Kurikirana iyi Iraporo',
     // NEW
     another: 'Tanga indi raporo',
+    linkedNotice: "Hari indi raporo isa n’iyi igifunguye hafi aho, none twayihuje n’iyanyu. Iraporo yanyu yongera uburemere kandi ifasha itsinda gukora vuba.",
   },
 
   feed: {
@@ -184,6 +190,34 @@ export const rw: Strings = {
     empty: "Nta raporo y'isuku iratangwa. Ba uwa mbere ufasha umujyi wacu!",
     noMatches: "Nta raporo yabonetse ihuye n'ibyo ushatse.",
     defaultSector: 'Umujyi wa Kigali',
+  },
+
+  ui: {
+    tabHome: "Ahabanza",
+    tabTrack: "Kurikirana",
+    tabReport: "Menyesha",
+    tabFeed: "Raporo",
+    tabStaff: "Abakozi",
+    themeLabel: "Hindura urumuri cyangwa umwijima",
+    installApp: "Shyira porogaramu kuri telefoni",
+    live: "Ako kanya",
+    liveHeading: "Umujyi muri iki gihe",
+    quickTrackLabel: "Mwamaze gutanga iraporo? Andika nimero yanyu.",
+    quickTrackButton: "Reba aho bigeze",
+    filterAll: "Byose",
+    stepIssue: "Ikibazo",
+    stepWhere: "Aho biherereye",
+    stepDetails: "Ibisobanuro",
+    stepYou: "Gusuzuma",
+    next: "Komeza",
+    back: "Subira inyuma",
+    reviewHeading: "Reba mbere yo kohereza",
+    share: "Sangiza",
+    myReports: "Raporo zanjye kuri iki gikoresho",
+    languageLabel: "Ururimi",
+    openLabel: "Bitarakemuka",
+    howEyebrow: "Biroroshye",
+    feedEyebrow: "Mu mujyi wose",
   },
 
   categories: {
@@ -201,9 +235,11 @@ export const rw: Strings = {
   },
 
   statuses: {
-    pending: 'Birimo Gukorwa',
-    done: 'Byarakemutse',
-    notdone: 'Ntibyakemutse',
+    pending: "Yakiriwe",
+    in_progress: "Birimo Gukorwa",
+    done: "Byarakemutse",
+    notdone: "Ntibyakemutse",
+    reopened: "Yongeye Gufungurwa",
   },
 
   footer: {
@@ -226,6 +262,9 @@ export const rw: Strings = {
     invalidInput: 'Nyabuneka reba neza ibisabwa byose hanyuma wongere ugerageze.',
     submitError: 'Hari ikibazo kibaye mu kubika iraporo. Nyabuneka ongera ugerageze.',
     sessionExpired: 'Igihe cyanyu cyarangiye. Nyabuneka ongera ufungure urupapuro maze wohereze.',
+    photoRejected: "Iyo foto ntiyakoreshejwe. Nyabuneka hitamo ifoto ya JPEG cyangwa PNG, cyangwa wohereze iraporo nta foto.",
+    photoTooLarge: "Iyo foto ni nini cyane. Nyabuneka hitamo intoya, cyangwa wohereze iraporo nta foto.",
+    feedbackNotAllowed: "Iyi raporo ntigishobora guhindurwa muri ubu buryo.",
   },
 
   client: {
@@ -245,13 +284,51 @@ export const rw: Strings = {
     labelSector: 'Umurenge',
     labelDetails: 'Ibisobanuro',
     labelDate: 'Itariki',
-    timelineSubmitted: 'Iraporo Yoherejwe',
-    timelineProgress: 'Birimo Gukurikiranwa',
-    timelineResolved: 'Isuku Yarangiye',
-    timelineNotDone: 'Ntibyakemutse',
     noMatches: "Nta raporo yabonetse ihuye n'ibyo ushatse.",
     // NEW
     searchCleared: 'Turerekana raporo zose ziherutse.',
+    statuses: {
+      pending: "Yakiriwe",
+      in_progress: "Birimo Gukorwa",
+      done: "Byarakemutse",
+      notdone: "Ntibyakemutse",
+      reopened: "Yongeye Gufungurwa",
+    },
+    labelTarget: "Itariki iteganyijwe",
+    overdueNote: "Iyi raporo yarengeje itariki yari iteganyijwe, kandi itsinda ryamenyeshejwe.",
+    photoAlt: "Ifoto yometse kuri iyi raporo",
+    eventCreated: "Iraporo yoherejwe",
+    eventStatuses: {
+      pending: "Yasubijwe ku rutonde",
+      in_progress: "Itsinda ryatangiye gukora",
+      done: "Byemejwe ko byakemutse",
+      notdone: "Yafunzwe bitakemutse",
+      reopened: "Uwayitanze yongeye kuyifungura",
+    },
+    eventConfirmed: "Uwatanze iraporo yemeje ko byakemutse",
+    eventNote: "Ubutumwa buvuye ku itsinda",
+    feedbackHeading: "Ikibazo cyakemutse koko?",
+    feedbackBody: "Aho hantu murahazi neza. Nyabuneka tubwire niba cyarakemutse koko.",
+    confirmButton: "Yego, cyarakemutse",
+    reopenButton: "Oya, kiracyahari",
+    reopenNoteLabel: "Ni iki kikiri ikibazo? (si ngombwa)",
+    reopenSubmit: "Bisubize itsinda",
+    cancel: "Reka",
+    feedbackConfirmed: "Murakoze kubyemeza.",
+    feedbackReopened: "Iraporo yanyu yongeye gufungurwa isubizwa itsinda.",
+    confirmedNote: "Mwemeje ko byakemutse. Murakoze.",
+    gpsWorking: "Turashaka aho muri…",
+    gpsCaptured: "Aho muri habitswe, hafi metero {m}.",
+    gpsFailed: "Ntitwabashije kubona aho muri. Mushobora kohereza iraporo mwuzuza ibisabwa hasi.",
+    gpsOutside: "Aho hantu hasa n’aho hari hanze ya Kigali, ntihabitswe.",
+    photoWrongType: "Nyabuneka hitamo ifoto.",
+    photoProcessing: "Turategura ifoto yanyu…",
+    draftRestored: "Twagaruye iraporo mwari mwatangiye.",
+    draftDiscard: "Tangira bushya",
+    fieldRequired: "Nyabuneka uzuza hano kugira ngo ukomeze.",
+    stepOf: "Intambwe {n} kuri {total}",
+    removeSaved: "Kuraho",
+    shareText: "Nimero y’iraporo yanjye ya Clean Kigali:",
     categories: {
       'full-bin': 'Ipubure Yuzuye Cyane',
       'blocked-drain': 'Umuyoboro Wazibye',

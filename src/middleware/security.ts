@@ -68,7 +68,9 @@ export function securityHeaders(): RequestHandler[] {
 
     (_req, res, next) => {
       // helmet has no Permissions-Policy helper.
-      res.setHeader('Permissions-Policy', 'geolocation=(), microphone=(), camera=()');
+      // geolocation is allowed for this origin only: the report form offers
+      // "use my current location". Nothing embedded in a page may ask for it.
+      res.setHeader('Permissions-Policy', 'geolocation=(self), microphone=(), camera=()');
       next();
     },
   ];

@@ -77,6 +77,9 @@ export const config = {
     views: path.resolve(__dirname, '..', 'views'),
     public: path.resolve(__dirname, '..', 'public'),
     logs: str('LOG_DIR', path.resolve(__dirname, '..', 'logs')),
+    /** Report photos. Outside public/ so nothing is served without going
+     *  through the /media route and its filename check. */
+    uploads: str('UPLOAD_DIR', path.resolve(__dirname, '..', 'uploads')),
   },
 
   session: {
@@ -120,13 +123,50 @@ export const config = {
     name: 50,
     contact: 50,
     username: 50,
+    /** A staff update shown to the resident on the tracker. */
+    note: 500,
   },
+
+  /**
+   * Service targets: how long a report of each urgency may stay open before
+   * it counts as overdue. A report is "at risk" in the last quarter of its
+   * window, which is when it should start rising up the queue.
+   */
+  sla: {
+    hours: { high: 24, medium: 72, low: 168 },
+    atRiskFraction: 0.75,
+  },
+
+  /** How long after a resolution the reporter may still reopen it. */
+  reopenWindowDays: 14,
+
+  /**
+   * Duplicate detection. A new report is linked to an open one of the same
+   * category filed within the window, either in the same cell or, when both
+   * carry GPS, within the radius.
+   */
+  duplicates: { windowDays: 7, radiusMeters: 150 },
+
+  /** Photo uploads. The browser shrinks photos first; this is the backstop. */
+  upload: { maxBytes: 6 * 1024 * 1024 },
 } as const;
 
 /** Anything not on these lists is rejected outright. */
 export const VALID_CATEGORIES = ['full-bin', 'blocked-drain', 'illegal-dumping', 'litter', 'other'] as const;
 export const VALID_URGENCIES = ['low', 'medium', 'high'] as const;
-export const VALID_STATUSES = ['pending', 'notdone', 'done'] as const;
+/**
+ * Report lifecycle.
+ *
+ *   pending      received, nobody has picked it up yet
+ *   in_progress  a leader is working on it
+ *   done         resolved
+ *   notdone      closed without a fix (not actionable, wrong agency, ...)
+ *   reopened     the reporter said a resolved report is still a problem
+ *
+ * Which moves are allowed is decided in lib/workflow.ts, not here.
+ */
+export const VALID_STATUSES = ['pending', 'in_progress', 'done', 'notdone', 'reopened'] as const;
+
 
 export type Category = (typeof VALID_CATEGORIES)[number];
 export type Urgency = (typeof VALID_URGENCIES)[number];

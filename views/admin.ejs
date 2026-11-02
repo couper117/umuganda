@@ -1,274 +1,299 @@
 <%
 /**
- * admin.ejs — the dashboard.
+ * admin.ejs — the report queue.
  *
- * Loads the public stylesheet first for the shared tokens, fonts, navbar and
- * buttons, then admin.css for the pieces only the dashboard has. That is what
- * keeps the two halves of the service looking like one product rather than two.
- * English only, as admin.php was.
+ * Each row carries a native <details> whose content is a fixed slide-over panel
+ * in the stylesheet, so it opens, closes and is reachable by keyboard with no
+ * JavaScript at all. admin.js adds row clicks, shortcuts and live updates on top.
  *
  * Report content is public input: everything below is interpolated with the
  * escaping tag, and admin.js sets text with textContent rather than innerHTML.
  */
+const QUICK = { pending: ['in_progress', 'Start work'], reopened: ['in_progress', 'Start work'], in_progress: ['done', 'Mark resolved'] };
 %><!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="robots" content="noindex, nofollow">
-  <title>Dashboard — Clean Kigali</title>
-  <!-- Read by admin.js and sent with every state-changing request -->
+  <%- include('partials/staffhead', { pageTitle: 'Queue' }) %>
   <meta name="csrf-token" content="<%= csrfToken %>">
-  <link rel="preload" href="/fonts/montserrat-latin.woff2" as="font" type="font/woff2" crossorigin>
-  <link rel="stylesheet" href="/style.css">
-  <link rel="stylesheet" href="/admin.css">
 </head>
-<body class="admin-body">
+<body class="staff">
   <a class="skip-link" href="#queue">Skip to the report queue</a>
+  <%- include('partials/adminnav', { active: 'queue', openCount: stats.open }) %>
 
-  <nav class="navbar" aria-label="Dashboard navigation">
-    <div class="container nav-inner">
-      <a class="navbar-brand" href="/admin">
-        <span class="brand-mark" aria-hidden="true">CK</span>
-        <span>Clean<span class="brand-highlight">Kigali</span></span>
-      </a>
-
-      <span class="admin-tag">Dashboard</span>
-
-      <div class="admin-identity">
-        <a class="nav-link" href="<%= portalHref %>">View public site</a>
-        <% if (isSuper) { %>
-          <a class="nav-link" href="/admin/accounts">Accounts</a>
-        <% } %>
-        <a class="nav-link" href="/admin/password">Change password</a>
-        <span class="admin-user">Signed in as <strong><%= admin %></strong></span>
-        <form method="POST" action="/logout" class="logout-form">
-          <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
-          <button type="submit" class="btn-cta btn-cta-quiet">Sign out</button>
-        </form>
+  <main class="workspace">
+    <header class="work-head">
+      <div>
+        <h1>Report queue</h1>
+        <p>
+          <% if (scopeLabel) { %>Reports filed in <strong><%= scopeLabel %></strong> cell, most pressing first.
+          <% } else { %>All reports across Kigali, most pressing first.<% } %>
+        </p>
       </div>
-    </div>
-  </nav>
+      <div class="work-actions">
+        <button class="new-pill" type="button" id="newReports" hidden></button>
+        <span class="live-badge" id="liveStatus" title="Counters refresh by themselves">
+          <span class="live-dot" aria-hidden="true"></span>Live
+        </span>
+      </div>
+    </header>
 
-  <header class="page-head">
-    <div class="container">
-      <h1>Report queue</h1>
-      <p>
-        <% if (scopeLabel) { %>
-          Reports filed in <strong><%= scopeLabel %></strong> cell. Ordered by urgency, then newest first.
-          Changes are saved immediately and recorded in the audit log.
-        <% } else { %>
-          All reports across Kigali, ordered by urgency then newest first.
-          Changes are saved immediately and recorded in the audit log.
-        <% } %>
-      </p>
-    </div>
-  </header>
-
-  <main class="container dashboard">
-
-    <!-- Counters -->
-    <section class="stats-grid" aria-label="Report counts">
-      <div class="stat-card">
-        <div class="stat-number" id="stat-total"><%= stats.total %></div>
-        <div class="stat-label">Total reports</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number" id="stat-pending"><%= stats.pending %></div>
-        <div class="stat-label">In progress</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-number" id="stat-resolved"><%= stats.done %></div>
-        <div class="stat-label">Resolved</div>
-      </div>
-      <div class="stat-card stat-card-critical">
-        <div class="stat-number" id="stat-high"><%= stats.high %></div>
-        <div class="stat-label">High urgency</div>
-      </div>
+    <section class="kpi-grid" aria-label="Report counts">
+      <button class="kpi" type="button" data-view-target="open">
+        <span class="kpi-value" id="stat-open" data-count><%= stats.open %></span>
+        <span class="kpi-label">Open</span>
+      </button>
+      <button class="kpi kpi-alert" type="button" data-view-target="overdue">
+        <span class="kpi-value" id="stat-overdue" data-count><%= stats.overdue %></span>
+        <span class="kpi-label">Overdue</span>
+      </button>
+      <button class="kpi" type="button" data-view-target="progress">
+        <span class="kpi-value" id="stat-progress" data-count><%= stats.inProgress %></span>
+        <span class="kpi-label">In progress</span>
+      </button>
+      <button class="kpi" type="button" data-view-target="closed">
+        <span class="kpi-value" id="stat-resolved" data-count><%= stats.done %></span>
+        <span class="kpi-label">Resolved</span>
+      </button>
     </section>
 
-    <!-- Hotspots -->
     <% if (hotspots.length > 0) { %>
       <section class="hotspots" aria-labelledby="hotspots-heading">
-        <h2 id="hotspots-heading" class="hotspots-heading">Most reported locations</h2>
+        <h2 id="hotspots-heading" class="hotspots-title">Hotspots</h2>
         <ul class="hotspot-list">
           <% hotspots.forEach(function (spot) { %>
             <li class="hotspot">
               <span class="hotspot-name"><%= spot.location || 'Unspecified' %></span>
-              <span class="hotspot-count"><%= spot.count %> report<%= Number(spot.count) === 1 ? '' : 's' %></span>
+              <span class="hotspot-count"><%= spot.count %></span>
             </li>
           <% }); %>
         </ul>
       </section>
     <% } %>
 
-    <!-- Search and filters. Plain controls, no bottom sheet: a <details>
-         disclosure is operable by keyboard and needs no JS to open. -->
-    <section class="filter-bar" aria-labelledby="filter-heading">
-      <h2 id="filter-heading" class="visually-hidden">Search and filter</h2>
+    <section id="queue" aria-labelledby="queue-heading" class="queue">
+      <h2 id="queue-heading" class="visually-hidden">Reports</h2>
 
-      <div class="field">
-        <label class="field-label" for="adminSearch">Search reports</label>
-        <input type="search" id="adminSearch" class="field-input"
-               placeholder="Reference, location, sector or reporter" autocomplete="off">
+      <div class="view-tabs js-only" role="group" aria-label="Show reports">
+        <% [['open','Open'],['overdue','Overdue'],['soon','Due soon'],['progress','In progress'],['reopened','Reopened'],['closed','Closed'],['all','All']].forEach(function (v) { %>
+          <button class="view-tab" type="button" data-view="<%= v[0] %>" aria-pressed="<%= v[0] === 'open' ? 'true' : 'false' %>">
+            <%= v[1] %> <span class="view-count" data-view-count="<%= v[0] %>"></span>
+          </button>
+        <% }); %>
       </div>
 
-      <details class="filter-disclosure" id="filterDisclosure">
-        <summary class="filter-summary">
-          Filters
-          <span class="filter-count" id="filterCount" hidden>0</span>
-        </summary>
-
-        <div class="filter-panel">
-          <fieldset class="filter-set">
-            <legend class="field-label">Status</legend>
-            <div class="filter-pills">
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="pending"><span class="pill-body">In progress</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="done"><span class="pill-body">Resolved</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="status" data-filter-value="notdone"><span class="pill-body">Not resolved</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="filter-set">
-            <legend class="field-label">Urgency</legend>
-            <div class="filter-pills">
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="high"><span class="pill-body">High</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="medium"><span class="pill-body">Medium</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="low"><span class="pill-body">Low</span></label>
-            </div>
-          </fieldset>
-
-          <fieldset class="filter-set">
-            <legend class="field-label">Category</legend>
-            <div class="filter-pills">
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="full-bin"><span class="pill-body">Overflowing bin</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="blocked-drain"><span class="pill-body">Blocked drain</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="illegal-dumping"><span class="pill-body">Illegal dumping</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="litter"><span class="pill-body">General litter</span></label>
-              <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="other"><span class="pill-body">Other</span></label>
-            </div>
-          </fieldset>
-
-          <button type="button" class="btn btn-secondary" id="clearFiltersBtn">Clear all filters</button>
+      <div class="queue-tools">
+        <div class="search-box">
+          <%- include('partials/icons', { name: 'search' }) %>
+          <label class="visually-hidden" for="adminSearch">Search reports</label>
+          <input type="search" id="adminSearch" autocomplete="off" placeholder="Search reference, place or reporter">
+          <kbd class="search-kbd js-only" aria-hidden="true">/</kbd>
         </div>
-      </details>
 
-      <p class="filter-status" id="filterStatus" role="status" aria-live="polite"></p>
-    </section>
+        <details class="menu filter-menu" id="filterDisclosure" data-menu>
+          <summary>
+            <%- include('partials/icons', { name: 'filter' }) %>Filters
+            <span class="filter-count" id="filterCount" hidden>0</span>
+          </summary>
+          <div class="menu-panel filter-panel">
+            <fieldset class="filter-set">
+              <legend>Urgency</legend>
+              <div class="filter-pills">
+                <% [['high','High'],['medium','Medium'],['low','Low']].forEach(function (o) { %>
+                  <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="urgency" data-filter-value="<%= o[0] %>"><span class="pill-body"><%= o[1] %></span></label>
+                <% }); %>
+              </div>
+            </fieldset>
+            <fieldset class="filter-set">
+              <legend>Category</legend>
+              <div class="filter-pills">
+                <% [['full-bin','Overflowing bin'],['blocked-drain','Blocked drain'],['illegal-dumping','Illegal dumping'],['litter','General litter'],['other','Other']].forEach(function (o) { %>
+                  <label class="pill"><input type="checkbox" class="pill-input" data-filter-type="category" data-filter-value="<%= o[0] %>"><span class="pill-body"><%= o[1] %></span></label>
+                <% }); %>
+              </div>
+            </fieldset>
+            <button type="button" class="btn btn-outline btn-small" id="clearFiltersBtn">Clear filters</button>
+          </div>
+        </details>
 
-    <!-- Queue.
-         Laid out as dense rows rather than stacked blocks: the old card put one
-         report per ~350px of height, so a queue of any size was almost entirely
-         scrolling. Everything an officer triages on — where it is, who reported
-         it, how to reach them, urgency and status — is now on one line, with only
-         the free-text description behind a disclosure. -->
-    <section id="queue" aria-labelledby="queue-heading">
-      <div class="queue-head">
-        <h2 id="queue-heading">Reports</h2>
-        <p class="queue-count" id="queueCount"><%= cards.length %> total</p>
+        <p class="queue-count" id="queueCount" role="status"><%= cards.length %> total</p>
       </div>
+      <p class="visually-hidden" id="filterStatus" role="status" aria-live="polite"></p>
 
-      <% if (cards.length > 0) { %>
-        <div class="queue-legend" aria-hidden="true">
-          <span class="col-report">Report</span>
-          <span class="col-where">Location</span>
-          <span class="col-who">Reporter</span>
-          <span class="col-flags">Urgency &amp; status</span>
-          <span class="col-actions">Set status</span>
-        </div>
+      <% if (stats.total > cards.length) { %>
+        <p class="queue-note">
+          Every open report is listed, plus the <%= closedLimit %> most recently closed.
+          The full archive is in the <a href="/admin/export.csv">CSV export</a>.
+        </p>
       <% } %>
 
       <ul class="report-list" id="reportList">
-        <% cards.forEach(function (card) { %>
+        <% cards.forEach(function (card, index) { %>
           <li class="report-card urgency-<%= card.urgencyKey %>"
               id="report-<%= card.id %>"
               data-id="<%= card.id %>"
               data-reference="<%= card.reference %>"
               data-status="<%= card.statusKey %>"
+              data-sla="<%= card.slaState %>"
+              data-submitted="<%= card.time %>"
               data-urgency="<%= card.urgencyKey %>"
               data-category="<%= card.categoryKey %>"
-              data-search="<%= card.search %>">
+              data-search="<%= card.search %>"
+              style="--i:<%= Math.min(index, 12) %>">
 
             <div class="col-report">
-              <span class="row-icon" aria-hidden="true">
-                <%- include('partials/icons', { category: card.categoryKey }) %>
-              </span>
+              <span class="row-icon" aria-hidden="true"><%- include('partials/icons', { category: card.categoryKey }) %></span>
               <div class="row-titles">
                 <h3 class="row-title"><%= card.categoryLabel %></h3>
-                <p class="row-meta"><%= card.reference %> · <%= card.time %></p>
+                <p class="row-meta row-reference"><%= card.reference %></p>
               </div>
             </div>
 
-            <div class="col-where" data-label="Location">
+            <div class="col-where">
               <p class="row-strong"><%= card.location %></p>
-              <p class="row-quiet"><%= card.cell %><%= card.sector !== 'Unspecified' ? ' · ' + card.sector : '' %></p>
+              <p class="row-meta"><%= card.cell %><%= card.sector !== 'Unspecified' ? ' · ' + card.sector : '' %></p>
             </div>
 
-            <div class="col-who" data-label="Reporter">
+            <div class="col-who">
               <p class="row-strong"><%= card.reporterName %></p>
-              <p class="row-quiet"><%= card.contact %></p>
+              <p class="row-meta"><%= card.time %></p>
             </div>
 
             <div class="col-flags">
-              <span class="badge badge-<%= card.urgencyKey %>"><%= card.urgencyLabel %></span>
-              <!-- admin.js rewrites this text and the card's data-status; the
-                   colour follows data-status from CSS, so no class juggling. -->
+              <span class="chip chip-<%= card.urgencyKey %>"><%= card.urgencyLabel %></span>
               <span class="status-chip" data-role="status-label"><%= card.statusLabel %></span>
-            </div>
-
-            <div class="col-actions">
-              <fieldset class="status-set">
-                <legend class="visually-hidden">Status for <%= card.reference %></legend>
-                <div class="status-buttons">
-                  <button type="button" class="status-btn<%= card.statusKey === 'pending' ? ' is-active' : '' %>"
-                          data-status="pending" data-report="<%= card.id %>"
-                          aria-pressed="<%= card.statusKey === 'pending' ? 'true' : 'false' %>">In progress</button>
-                  <button type="button" class="status-btn<%= card.statusKey === 'notdone' ? ' is-active' : '' %>"
-                          data-status="notdone" data-report="<%= card.id %>"
-                          aria-pressed="<%= card.statusKey === 'notdone' ? 'true' : 'false' %>">Not resolved</button>
-                  <button type="button" class="status-btn<%= card.statusKey === 'done' ? ' is-active' : '' %>"
-                          data-status="done" data-report="<%= card.id %>"
-                          aria-pressed="<%= card.statusKey === 'done' ? 'true' : 'false' %>">Resolved</button>
-                </div>
-              </fieldset>
-
-              <% if (isSuper) { %>
-              <button type="button" class="icon-btn delete-btn" data-report="<%= card.id %>"
-                      data-reference="<%= card.reference %>"
-                      title="Delete <%= card.reference %>">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-                     stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 7h16"/><path d="M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/>
-                  <path d="M6 7v12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7"/><path d="M10 12v5M14 12v5"/>
-                </svg>
-                <span class="visually-hidden">Delete report <%= card.reference %></span>
-              </button>
+              <span class="sla-chip" data-role="sla-label"<%= card.slaLabel === '' ? ' hidden' : '' %>><%= card.slaLabel %></span>
+              <% if (card.linkedCount > 0) { %>
+                <span class="info-chip" title="Other residents reported what looks like the same problem">+<%= card.linkedCount %> linked</span>
+              <% } %>
+              <% if (card.duplicateOfId !== null) { %>
+                <a class="info-chip" href="#report-<%= card.duplicateOfId %>">Same as <%= card.duplicateOfRef %></a>
+              <% } %>
+              <% if (card.confirmed) { %>
+                <span class="info-chip info-chip-good">Reporter confirmed</span>
               <% } %>
             </div>
 
-            <details class="row-details">
-              <summary>Description and origin</summary>
-              <dl class="row-detail-fields">
-                <dt>Description</dt>
-                <dd><%= card.details %></dd>
-                <dt>Submitted from</dt>
-                <dd><code><%= card.ip %></code></dd>
-              </dl>
+            <div class="col-quick">
+              <% const quick = QUICK[card.statusKey]; %>
+              <button type="button" class="btn btn-small btn-outline quick-btn" data-quick data-report="<%= card.id %>"
+                      data-status="<%= quick ? quick[0] : '' %>"<%= quick ? '' : ' hidden' %>><%= quick ? quick[1] : '' %></button>
+            </div>
+
+            <details class="row-details" name="report-panel">
+              <summary aria-label="Details for <%= card.reference %>">
+                <span class="summary-open"><%- include('partials/icons', { name: 'chevron-right' }) %></span>
+                <span class="summary-close"><%- include('partials/icons', { name: 'close' }) %></span>
+              </summary>
+
+              <div class="drawer">
+                <header class="drawer-head">
+                  <span class="row-icon" aria-hidden="true"><%- include('partials/icons', { category: card.categoryKey }) %></span>
+                  <div>
+                    <h3 class="drawer-title"><%= card.categoryLabel %></h3>
+                    <p class="row-meta row-reference"><%= card.reference %></p>
+                  </div>
+                </header>
+
+                <div class="drawer-body">
+                  <section>
+                    <h4 class="row-subhead">Status</h4>
+                    <fieldset class="status-set">
+                      <legend class="visually-hidden">Status for <%= card.reference %></legend>
+                      <div class="status-buttons">
+                        <% [['in_progress', 'In progress'], ['notdone', 'Not resolved'], ['done', 'Resolved']].forEach(function (b) { %>
+                          <button type="button" class="status-btn<%= card.statusKey === b[0] ? ' is-active' : '' %>"
+                                  data-status="<%= b[0] %>" data-report="<%= card.id %>"
+                                  aria-pressed="<%= card.statusKey === b[0] ? 'true' : 'false' %>"
+                                  <%= card.statusKey !== b[0] && card.allowed.indexOf(b[0]) === -1 ? 'disabled' : '' %>><%= b[1] %></button>
+                        <% }); %>
+                      </div>
+                    </fieldset>
+                  </section>
+
+                  <section>
+                    <h4 class="row-subhead">Report</h4>
+                    <dl class="fact-list">
+                      <div><dt>Location</dt><dd><%= card.location %></dd></div>
+                      <div><dt>Area</dt><dd><%= card.cell %><%= card.sector !== 'Unspecified' ? ', ' + card.sector : '' %><%= card.village ? ', ' + card.village : '' %></dd></div>
+                      <div><dt>Description</dt><dd><%= card.details %></dd></div>
+                      <div><dt>Reporter</dt><dd><%= card.reporterName %></dd></div>
+                      <div><dt>Contact</dt><dd><%= card.contact %></dd></div>
+                      <% if (card.mapUrl) { %>
+                        <div>
+                          <dt>Map</dt>
+                          <dd>
+                            <a href="<%= card.mapUrl %>" target="_blank" rel="noopener noreferrer">Open the exact spot</a>
+                            <% if (card.accuracy !== null) { %><span class="row-meta">within about <%= card.accuracy %> m</span><% } %>
+                          </dd>
+                        </div>
+                      <% } %>
+                      <div><dt>Submitted from</dt><dd><code><%= card.ip %></code></dd></div>
+                    </dl>
+
+                    <% if (card.photoUrl) { %>
+                      <a class="row-photo" href="<%= card.photoUrl %>" target="_blank" rel="noopener">
+                        <img src="<%= card.photoUrl %>" alt="Photo of the problem, from the reporter" loading="lazy">
+                      </a>
+                    <% } %>
+                  </section>
+
+                  <section>
+                    <h4 class="row-subhead">History</h4>
+                    <ol class="event-list" data-role="timeline">
+                      <li class="event">
+                        <span class="event-title">Report submitted</span>
+                        <span class="event-meta"><%= card.time %></span>
+                      </li>
+                      <% card.timeline.forEach(function (ev) { %>
+                        <li class="event<%= ev.internal ? ' event-internal' : '' %>">
+                          <span class="event-title"><%= ev.title %></span>
+                          <span class="event-meta"><%= ev.time %><%= ev.actor ? ' · ' + ev.actor : '' %><%= ev.internal ? ' · internal' : '' %></span>
+                          <% if (ev.note) { %><p class="event-note"><%= ev.note %></p><% } %>
+                        </li>
+                      <% }); %>
+                    </ol>
+                  </section>
+
+                  <form class="update-form" data-update-form data-report="<%= card.id %>">
+                    <label class="row-subhead" for="note-<%= card.id %>">Post an update</label>
+                    <textarea id="note-<%= card.id %>" name="note" rows="2" maxlength="<%= noteLimit %>"
+                              placeholder="What happened, or what happens next"></textarea>
+                    <label class="check-line">
+                      <input type="checkbox" name="note_public" value="1">
+                      Show this to the reporter on the tracker
+                    </label>
+                    <button type="submit" class="btn btn-primary btn-small">Post update</button>
+                  </form>
+
+                  <% if (isSuper) { %>
+                    <button type="button" class="btn btn-small btn-outline delete-btn" data-report="<%= card.id %>"
+                            data-reference="<%= card.reference %>">
+                      <%- include('partials/icons', { name: 'trash' }) %>Delete report
+                    </button>
+                  <% } %>
+                </div>
+              </div>
             </details>
           </li>
         <% }); %>
       </ul>
 
       <% if (cards.length === 0) { %>
-        <p class="empty-state">No reports have been submitted yet.</p>
+        <div class="empty-state">
+          <%- include('partials/icons', { name: 'inbox' }) %>
+          <p>No reports have been submitted yet.</p>
+        </div>
       <% } %>
 
-      <p class="empty-state" id="noResultsState" hidden>No reports match your search or filters.</p>
+      <div class="empty-state" id="noResultsState" hidden>
+        <%- include('partials/icons', { name: 'check' }) %>
+        <p>Nothing here matches this view.</p>
+      </div>
     </section>
   </main>
 
-  <!-- Delete confirmation. A real dialog rather than window.confirm(), which
-       blocks the page and cannot be styled or described. -->
+  <!-- A real dialog rather than window.confirm(), which blocks the page and cannot
+       be styled or described. -->
   <div class="modal-backdrop" id="deleteBackdrop" hidden></div>
   <div class="modal" id="deleteDialog" role="dialog" aria-modal="true"
        aria-labelledby="deleteTitle" aria-describedby="deleteBody" hidden>
@@ -277,13 +302,12 @@
       <span id="deleteTarget"></span> will be permanently removed. This cannot be undone.
     </p>
     <div class="modal-actions">
-      <button type="button" class="btn btn-secondary" id="deleteCancel">Cancel</button>
+      <button type="button" class="btn btn-outline" id="deleteCancel">Cancel</button>
       <button type="button" class="btn btn-danger" id="deleteConfirm">Delete report</button>
     </div>
   </div>
 
   <div class="toast-region" id="toastRegion" role="status" aria-live="polite"></div>
-
   <script src="/js/admin.js"></script>
 </body>
 </html>

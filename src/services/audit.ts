@@ -21,7 +21,9 @@ export type AuditAction =
   | 'account_activated'
   | 'account_deactivated'
   | 'status_change'
-  | 'report_deleted';
+  | 'report_note'
+  | 'report_deleted'
+  | 'reports_exported';
 
 export async function audit(
   actor: string,

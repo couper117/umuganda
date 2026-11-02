@@ -96,7 +96,7 @@ export async function initDatabase(): Promise<void> {
   await ensureSchema();
 }
 
-/** Create the four tables if the schema has not been set up yet. */
+/** Create the tables if the schema has not been set up yet. */
 async function ensureSchema(): Promise<void> {
   const conn = await db().getConnection();
   try {
@@ -107,6 +107,8 @@ async function ensureSchema(): Promise<void> {
       // columns added since this database was first created.
       await backfillReportIndexes(conn);
       await backfillColumns(conn);
+      await ensureEventsTable(conn);
+      await backfillDeadlines(conn);
       return;
     }
 
@@ -126,11 +128,22 @@ async function ensureSchema(): Promise<void> {
       \`district\` VARCHAR(50) DEFAULT NULL,
       \`cell\` VARCHAR(50) DEFAULT NULL,
       \`village\` VARCHAR(50) DEFAULT NULL,
+      \`public_token\` VARCHAR(12) DEFAULT NULL,
+      \`due_at\` DATETIME DEFAULT NULL,
+      \`updated_at\` DATETIME DEFAULT NULL,
+      \`resolved_at\` DATETIME DEFAULT NULL,
+      \`confirmed_at\` DATETIME DEFAULT NULL,
+      \`latitude\` DECIMAL(9,6) DEFAULT NULL,
+      \`longitude\` DECIMAL(9,6) DEFAULT NULL,
+      \`location_accuracy\` INT(11) DEFAULT NULL,
+      \`photo\` VARCHAR(64) DEFAULT NULL,
+      \`duplicate_of\` INT(11) DEFAULT NULL,
       PRIMARY KEY (\`id\`),
       KEY \`idx_status\` (\`status\`),
       KEY \`idx_urgency\` (\`urgency\`),
       KEY \`idx_time\` (\`time\`),
-      KEY \`idx_cell\` (\`cell\`)
+      KEY \`idx_cell\` (\`cell\`),
+      KEY \`idx_duplicate_of\` (\`duplicate_of\`)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     // Dashboard accounts. Passwords are bcrypt digests, never plaintext.
@@ -175,8 +188,52 @@ async function ensureSchema(): Promise<void> {
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
     await backfillReportIndexes(conn);
+    await ensureEventsTable(conn);
   } finally {
     conn.release();
+  }
+}
+
+/**
+ * A report's history: created, every status change with who made it and an
+ * optional note, and the reporter's own confirmation or dispute.
+ *
+ * `is_public` decides whether the resident sees the row on the tracker. Staff
+ * can write an internal note ("waiting on the district truck") without it
+ * appearing to the public.
+ */
+async function ensureEventsTable(conn: PoolConnection): Promise<void> {
+  await conn.query(`CREATE TABLE IF NOT EXISTS \`report_events\` (
+    \`id\` INT(11) NOT NULL AUTO_INCREMENT,
+    \`report_id\` INT(11) NOT NULL,
+    \`occurred_at\` DATETIME NOT NULL,
+    \`kind\` VARCHAR(20) NOT NULL,
+    \`status_from\` VARCHAR(20) DEFAULT NULL,
+    \`status_to\` VARCHAR(20) DEFAULT NULL,
+    \`note\` VARCHAR(500) DEFAULT NULL,
+    \`is_public\` TINYINT(1) NOT NULL DEFAULT 1,
+    \`actor\` VARCHAR(50) DEFAULT NULL,
+    PRIMARY KEY (\`id\`),
+    KEY \`idx_report_time\` (\`report_id\`, \`occurred_at\`)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+}
+
+/**
+ * Give rows that predate service targets a deadline, computed the same way a
+ * new report's is, so the overdue view covers the whole queue rather than only
+ * reports filed after this upgrade. Idempotent: only NULL deadlines are set.
+ */
+async function backfillDeadlines(conn: PoolConnection): Promise<void> {
+  try {
+    await conn.query(
+      `UPDATE \`reports\`
+          SET \`due_at\` = DATE_ADD(\`time\`, INTERVAL CASE \`urgency\`
+                WHEN 'high' THEN ? WHEN 'medium' THEN ? ELSE ? END HOUR)
+        WHERE \`due_at\` IS NULL AND \`time\` IS NOT NULL`,
+      [config.sla.hours.high, config.sla.hours.medium, config.sla.hours.low],
+    );
+  } catch (err) {
+    logError('Could not backfill report deadlines', err);
   }
 }
 
@@ -197,6 +254,16 @@ async function backfillColumns(conn: PoolConnection): Promise<void> {
     ['reports', 'district', "VARCHAR(50) DEFAULT NULL AFTER `status`"],
     ['reports', 'cell', "VARCHAR(50) DEFAULT NULL AFTER `district`"],
     ['reports', 'village', "VARCHAR(50) DEFAULT NULL AFTER `cell`"],
+    ['reports', 'public_token', 'VARCHAR(12) DEFAULT NULL'],
+    ['reports', 'due_at', 'DATETIME DEFAULT NULL'],
+    ['reports', 'updated_at', 'DATETIME DEFAULT NULL'],
+    ['reports', 'resolved_at', 'DATETIME DEFAULT NULL'],
+    ['reports', 'confirmed_at', 'DATETIME DEFAULT NULL'],
+    ['reports', 'latitude', 'DECIMAL(9,6) DEFAULT NULL'],
+    ['reports', 'longitude', 'DECIMAL(9,6) DEFAULT NULL'],
+    ['reports', 'location_accuracy', 'INT(11) DEFAULT NULL'],
+    ['reports', 'photo', 'VARCHAR(64) DEFAULT NULL'],
+    ['reports', 'duplicate_of', 'INT(11) DEFAULT NULL'],
     ['admin_users', 'role', "VARCHAR(20) NOT NULL DEFAULT 'leader'"],
     ['admin_users', 'district', 'VARCHAR(50) DEFAULT NULL'],
     ['admin_users', 'sector', 'VARCHAR(50) DEFAULT NULL'],
@@ -229,12 +296,16 @@ async function backfillColumns(conn: PoolConnection): Promise<void> {
     }
   }
 
-  const [cellIndex] = await conn.query<RowDataPacket[]>("SHOW INDEX FROM `reports` WHERE Key_name = 'idx_cell'");
-  if (cellIndex.length === 0) {
+  for (const [name, column] of [
+    ['idx_cell', 'cell'],
+    ['idx_duplicate_of', 'duplicate_of'],
+  ] as const) {
+    const [existingIndex] = await conn.query<RowDataPacket[]>('SHOW INDEX FROM `reports` WHERE Key_name = ?', [name]);
+    if (existingIndex.length > 0) continue;
     try {
-      await conn.query('ALTER TABLE `reports` ADD INDEX `idx_cell` (`cell`)');
+      await conn.query(`ALTER TABLE \`reports\` ADD INDEX \`${name}\` (\`${column}\`)`);
     } catch (err) {
-      logError('Could not add index idx_cell on reports', err);
+      logError(`Could not add index ${name} on reports`, err);
     }
   }
 }
@@ -302,6 +373,47 @@ export async function queryOne<T extends RowDataPacket>(
 export async function execute(sql: string, params: ReadonlyArray<SqlValue> = []): Promise<ResultSetHeader> {
   const [result] = await db().execute<ResultSetHeader>(sql, bind(params));
   return result;
+}
+
+/** The query helpers, bound to one connection inside a transaction. */
+export interface Tx {
+  query<T extends RowDataPacket>(sql: string, params?: ReadonlyArray<SqlValue>): Promise<T[]>;
+  execute(sql: string, params?: ReadonlyArray<SqlValue>): Promise<ResultSetHeader>;
+}
+
+/**
+ * Run `work` in a transaction: committed if it resolves, rolled back if it
+ * throws. Used wherever a read decides a write — a status change checks the
+ * current status under SELECT … FOR UPDATE, so two officers clicking at once
+ * cannot both apply a transition that was only valid from the old state.
+ */
+export async function withTransaction<T>(work: (tx: Tx) => Promise<T>): Promise<T> {
+  const conn = await db().getConnection();
+  const tx: Tx = {
+    async query<R extends RowDataPacket>(sql: string, params: ReadonlyArray<SqlValue> = []): Promise<R[]> {
+      const [rows] = await conn.execute<R[]>(sql, bind(params));
+      return rows;
+    },
+    async execute(sql: string, params: ReadonlyArray<SqlValue> = []): Promise<ResultSetHeader> {
+      const [result] = await conn.execute<ResultSetHeader>(sql, bind(params));
+      return result;
+    },
+  };
+  try {
+    await conn.beginTransaction();
+    const result = await work(tx);
+    await conn.commit();
+    return result;
+  } catch (err) {
+    try {
+      await conn.rollback();
+    } catch (rollbackErr) {
+      logError('Rollback failed', rollbackErr);
+    }
+    throw err;
+  } finally {
+    conn.release();
+  }
 }
 
 /** Close the pool. Used by the shutdown handler. */

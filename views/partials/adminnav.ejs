@@ -1,0 +1,96 @@
+<%
+/**
+ * adminnav.ejs — the staff app shell: a side rail on wide screens, a top bar and
+ * bottom tabs on a phone. Expects: active, admin, csrfToken, portalHref, and
+ * optionally openCount. Role comes from res.locals, so each page need not pass it.
+ */
+const canManage = locals.isSuperadmin === true;
+const initial = String(admin || '?').charAt(0).toUpperCase();
+%>
+<aside class="rail" aria-label="Dashboard">
+  <a class="brand rail-brand" href="/admin">
+    <%- include('logo') %>
+    <span class="rail-text">Clean Kigali</span>
+  </a>
+
+  <nav class="rail-nav" aria-label="Dashboard navigation">
+    <a class="rail-link" href="/admin" title="Queue" <%- active === 'queue' ? 'aria-current="page"' : '' %>>
+      <%- include('icons', { name: 'queue' }) %><span class="rail-text">Queue</span>
+      <% if (locals.openCount !== undefined) { %><span class="rail-badge" data-open-badge><%= openCount %></span><% } %>
+    </a>
+    <a class="rail-link" href="/admin/insights" title="Insights" <%- active === 'insights' ? 'aria-current="page"' : '' %>>
+      <%- include('icons', { name: 'chart' }) %><span class="rail-text">Insights</span>
+    </a>
+    <% if (canManage) { %>
+      <a class="rail-link" href="/admin/accounts" title="Accounts" <%- active === 'accounts' ? 'aria-current="page"' : '' %>>
+        <%- include('icons', { name: 'users' }) %><span class="rail-text">Accounts</span>
+      </a>
+    <% } %>
+    <a class="rail-link" href="/admin/export.csv" title="Export CSV">
+      <%- include('icons', { name: 'download' }) %><span class="rail-text">Export CSV</span>
+    </a>
+  </nav>
+
+  <div class="rail-foot">
+    <a class="rail-link" href="<%= portalHref %>" title="Public site">
+      <%- include('icons', { name: 'external' }) %><span class="rail-text">Public site</span>
+    </a>
+    <button class="rail-link" type="button" data-theme-toggle title="Switch between light and dark" hidden>
+      <span class="theme-light-only"><%- include('icons', { name: 'moon' }) %></span>
+      <span class="theme-dark-only"><%- include('icons', { name: 'sun' }) %></span>
+      <span class="rail-text">Appearance</span>
+    </button>
+    <a class="rail-link" href="/admin/password" title="Password" <%- active === 'password' ? 'aria-current="page"' : '' %>>
+      <%- include('icons', { name: 'key' }) %><span class="rail-text">Password</span>
+    </a>
+
+    <div class="rail-user">
+      <span class="avatar" aria-hidden="true"><%= initial %></span>
+      <span class="rail-text rail-user-name">
+        <strong><%= admin %></strong>
+        <small><%= canManage ? 'Superadmin' : 'Cell leader' %></small>
+      </span>
+      <form method="POST" action="/logout" class="rail-out">
+        <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+        <button class="icon-btn" type="submit" title="Sign out" aria-label="Sign out">
+          <%- include('icons', { name: 'logout' }) %>
+        </button>
+      </form>
+    </div>
+  </div>
+</aside>
+
+<header class="staff-bar">
+  <a class="brand" href="/admin"><%- include('logo') %><span>Clean Kigali</span></a>
+  <div class="staff-bar-actions">
+    <a class="icon-btn" href="<%= portalHref %>" title="Public site" aria-label="Public site"><%- include('icons', { name: 'external' }) %></a>
+    <button class="icon-btn" type="button" data-theme-toggle aria-label="Switch between light and dark" hidden>
+      <span class="theme-light-only"><%- include('icons', { name: 'moon' }) %></span>
+      <span class="theme-dark-only"><%- include('icons', { name: 'sun' }) %></span>
+    </button>
+    <form method="POST" action="/logout">
+      <input type="hidden" name="csrf_token" value="<%= csrfToken %>">
+      <button class="icon-btn" type="submit" aria-label="Sign out"><%- include('icons', { name: 'logout' }) %></button>
+    </form>
+  </div>
+</header>
+
+<nav class="tabbar staff-tabbar" aria-label="Dashboard sections">
+  <a class="tab" href="/admin" <%- active === 'queue' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'queue' }) %><span>Queue</span>
+  </a>
+  <a class="tab" href="/admin/insights" <%- active === 'insights' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'chart' }) %><span>Insights</span>
+  </a>
+  <% if (canManage) { %>
+    <a class="tab" href="/admin/accounts" <%- active === 'accounts' ? 'aria-current="page"' : '' %>>
+      <%- include('icons', { name: 'users' }) %><span>Accounts</span>
+    </a>
+  <% } %>
+  <a class="tab" href="/admin/export.csv">
+    <%- include('icons', { name: 'download' }) %><span>Export</span>
+  </a>
+  <a class="tab" href="/admin/password" <%- active === 'password' ? 'aria-current="page"' : '' %>>
+    <%- include('icons', { name: 'key' }) %><span>Password</span>
+  </a>
+</nav>

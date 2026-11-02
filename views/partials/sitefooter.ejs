@@ -1,19 +1,16 @@
 <%
 /**
- * sitefooter.ejs — dark footer, shared by every public page.
- *
- * Named sitefooter rather than footer so it does not collide with the existing
- * footer.ejs the single-page version used.
+ * sitefooter.ejs — shared by every public page, and where the scripts load.
  */
 %>
-<footer class="app-footer">
+<footer class="site-footer">
+  <div class="imigongo-band" aria-hidden="true"></div>
   <div class="container">
     <div class="footer-grid">
-
       <div>
-        <a class="footer-brand" href="/<%= locale %>">
-          <span class="brand-mark" aria-hidden="true">CK</span>
-          <span>Clean<span class="brand-highlight">Kigali</span></span>
+        <a class="brand" href="/<%= locale %>">
+          <%- include('logo') %>
+          <span>Clean Kigali</span>
         </a>
         <p class="footer-desc"><%= t.footer.description %></p>
         <p class="footer-desc"><%= t.footer.operatorLine %></p>
@@ -36,13 +33,10 @@
           <li><a href="https://www.rema.gov.rw/" target="_blank" rel="noopener noreferrer"><%= t.footer.remaLink %></a></li>
         </ul>
       </div>
-
     </div>
 
-    <hr class="footer-divider">
-
     <div class="footer-bottom">
-      <p class="footer-note"><%= t.footer.dataNote %></p>
+      <p><%= t.footer.dataNote %></p>
       <p>&copy; <%= year %> Clean Kigali Initiative</p>
     </div>
   </div>

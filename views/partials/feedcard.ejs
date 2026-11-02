@@ -1,26 +1,21 @@
 <%
 /**
- * feedcard.ejs — one public report, used by both the home preview and the
- * feed page.
+ * feedcard.ejs — one public report, used by the home preview and the feed page.
  *
  * Only non-identifying fields reach this template: reporter name, contact and
- * IP are not selected by the queries behind it, so they cannot be rendered
- * here even by mistake.
- *
- * The data-search attribute backs the client-side filter on the feed page.
+ * IP are not selected by the queries behind it, so they cannot be rendered here
+ * even by mistake. The data attributes back the client-side filters.
  */
 %>
-<article class="feed-card" data-feed-card data-search="<%= r.search %>">
+<article class="feed-card" data-feed-card data-search="<%= r.search %>"
+         data-group="<%= r.isOpen ? 'open' : 'closed' %>" data-category="<%= r.categoryKey %>">
   <div class="feed-card-top">
-    <span class="feed-icon">
-      <%- include('icons', { category: r.categoryKey }) %>
-    </span>
+    <span class="feed-icon"><%- include('icons', { category: r.categoryKey }) %></span>
     <div>
       <h3><%= r.location %></h3>
-      <p class="feed-sector"><%= r.sector && r.sector !== '' ? r.sector : t.feed.defaultSector %></p>
+      <p class="feed-sector"><%= r.categoryLabel %> · <%= r.sector && r.sector !== '' ? r.sector : t.feed.defaultSector %></p>
     </div>
   </div>
-
   <div class="feed-meta">
     <span class="chip chip-<%= r.statusKey %>"><%= r.statusLabel %></span>
     <span class="chip chip-<%= r.urgencyKey %>"><%= r.urgencyLabel %></span>

@@ -2,7 +2,7 @@
 /**
  * feed.ejs — the full public feed.
  *
- * Every card is rendered server-side; the search box filters what is already
+ * Every card is rendered server-side. Search and filters narrow what is already
  * on the page rather than querying, so there is no endpoint here to rate-limit
  * and no way to enumerate anything that was not already public.
  */
@@ -13,57 +13,56 @@
 </head>
 <body data-strings="<%= clientStrings %>">
   <a class="skip-link" href="#main"><%= t.skipLink %></a>
-
   <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
 
-  <main id="main">
+  <main id="main" class="container">
+    <header class="page-intro">
+      <span class="eyebrow"><%= t.ui.feedEyebrow %></span>
+      <h1><%= t.feed.heading %></h1>
+      <p><%= t.home.recentIntro %></p>
+    </header>
 
-    <section class="page-head">
-      <div class="container">
-        <h1><%= t.feed.heading %></h1>
-        <p><%= t.home.recentIntro %></p>
-      </div>
+    <section class="page-body">
+      <% if (reports.length === 0) { %>
+        <div class="empty-state">
+          <%- include('partials/icons', { name: 'inbox' }) %>
+          <p><%= t.feed.empty %></p>
+          <a class="btn btn-accent" href="/<%= locale %>/report">
+            <%- include('partials/icons', { name: 'plus' }) %><%= t.nav.report %>
+          </a>
+        </div>
+      <% } else { %>
+        <div class="toolbar">
+          <div class="search-box">
+            <%- include('partials/icons', { name: 'search' }) %>
+            <label class="visually-hidden" for="feed-search"><%= t.feed.searchLabel %></label>
+            <input type="search" id="feed-search" data-feed-search autocomplete="off"
+                   placeholder="<%= t.feed.searchPlaceholder %>">
+          </div>
+          <div class="filter-chips js-only" role="group" aria-label="<%= t.feed.searchLabel %>">
+            <button class="filter-chip" type="button" data-feed-group="all" aria-pressed="true"><%= t.ui.filterAll %></button>
+            <button class="filter-chip" type="button" data-feed-group="open" aria-pressed="false"><%= t.ui.openLabel %></button>
+            <button class="filter-chip" type="button" data-feed-group="closed" aria-pressed="false"><%= t.stats.resolved %></button>
+          </div>
+        </div>
+
+        <div class="filter-chips js-only" role="group" aria-label="<%= t.form.categoryLegend %>" style="margin-bottom:20px">
+          <button class="filter-chip" type="button" data-feed-category="all" aria-pressed="true"><%= t.ui.filterAll %></button>
+          <% categories.forEach(function (c) { %>
+            <button class="filter-chip" type="button" data-feed-category="<%= c %>" aria-pressed="false"><%= t.categories[c] %></button>
+          <% }); %>
+        </div>
+
+        <div class="feed-grid" data-feed-grid>
+          <% reports.forEach(function (r) { %>
+            <%- include('partials/feedcard', { t: t, r: r }) %>
+          <% }); %>
+        </div>
+
+        <p class="empty-state" data-feed-empty hidden><%= t.feed.noMatches %></p>
+        <p class="visually-hidden" role="status" data-feed-status></p>
+      <% } %>
     </section>
-
-    <section class="section">
-      <div class="container">
-
-        <% if (reports.length === 0) { %>
-
-          <div class="empty-state">
-            <%- include('partials/icons', { name: 'inbox' }) %>
-            <p><%= t.feed.empty %></p>
-            <p style="margin-top:22px;">
-              <a class="btn btn-primary" href="/<%= locale %>/report">
-                <%- include('partials/icons', { name: 'pencil' }) %><%= t.nav.report %>
-              </a>
-            </p>
-          </div>
-
-        <% } else { %>
-
-          <div class="feed-toolbar">
-            <div class="field">
-              <label for="feed-search"><%= t.feed.searchLabel %></label>
-              <input type="text" id="feed-search" data-feed-search autocomplete="off"
-                     placeholder="<%= t.feed.searchPlaceholder %>">
-            </div>
-          </div>
-
-          <div class="feed-grid" data-feed-grid>
-            <% reports.forEach(function (r) { %>
-              <%- include('partials/feedcard', { t: t, r: r }) %>
-            <% }); %>
-          </div>
-
-          <p class="empty-state" data-feed-empty hidden><%= t.feed.noMatches %></p>
-          <p class="visually-hidden" role="status" data-feed-status></p>
-
-        <% } %>
-
-      </div>
-    </section>
-
   </main>
 
   <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>

@@ -13,6 +13,7 @@
 
 import { VALID_CATEGORIES, VALID_STATUSES, VALID_URGENCIES, config } from '../config';
 import { isDistrict, isSectorOf } from './areas';
+import { parseCoordinates } from './geo';
 import type { Category, Status, Urgency } from '../config';
 import type { ValidationResult } from '../types';
 
@@ -88,6 +89,10 @@ export function validateReport(body: Record<string, unknown>): ValidationResult 
   const name = cleanText(body['name'], config.limits.name);
   const contact = cleanText(body['contact'], config.limits.contact);
 
+  // A hint, never a requirement: bad or absent coordinates cost the visitor
+  // nothing, the report simply carries no pin.
+  const coords = parseCoordinates(body['latitude'], body['longitude'], body['accuracy']);
+
   if (
     errors.length > 0 ||
     category === null ||
@@ -102,22 +107,22 @@ export function validateReport(body: Record<string, unknown>): ValidationResult 
 
   return {
     ok: true,
-    data: { category, urgency, location, district, sector, cell, village, details, name, contact },
+    data: {
+      category,
+      urgency,
+      location,
+      district,
+      sector,
+      cell,
+      village,
+      details,
+      name,
+      contact,
+      latitude: coords?.latitude ?? null,
+      longitude: coords?.longitude ?? null,
+      locationAccuracy: coords?.accuracy ?? null,
+    },
   };
-}
-
-/**
- * Parse a CK-#### reference into a positive integer id, or null if malformed.
- * Accepts an optional hyphen and any case, matching the PHP original.
- */
-export function parseReference(reference: unknown): number | null {
-  if (typeof reference !== 'string') return null;
-
-  const match = /^CK-?(\d{1,9})$/.exec(reference.trim().toUpperCase());
-  if (match === null) return null;
-
-  const id = Number.parseInt(match[1] as string, 10);
-  return id > 0 ? id : null;
 }
 
 /**

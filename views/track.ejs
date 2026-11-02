@@ -1,13 +1,11 @@
 <%
 /**
- * track.ejs — the reference lookup, on its own page.
+ * track.ejs — the reference lookup.
  *
  * The form submits through fetch to /:locale/track/lookup and the result is
  * built in the browser. src/client/app.ts constructs it with createElement and
  * textContent rather than an innerHTML template, so report content cannot
- * become markup.
- *
- * `prefill` lets the success page link straight here with the box filled in.
+ * become markup. `prefill` lets a link arrive with the box already filled in.
  */
 %><!DOCTYPE html>
 <html lang="<%= t.htmlLang %>">
@@ -16,47 +14,35 @@
 </head>
 <body data-strings="<%= clientStrings %>">
   <a class="skip-link" href="#main"><%= t.skipLink %></a>
-
   <%- include('partials/navbar', { t: t, locale: locale, languages: languages, current: current }) %>
 
-  <main id="main">
+  <main id="main" class="container">
+    <header class="page-intro page-intro-center">
+      <h1><%= t.tracker.heading %></h1>
+      <p><%= t.tracker.intro %></p>
+    </header>
 
-    <section class="page-head">
-      <div class="container">
-        <h1><%= t.tracker.heading %></h1>
-        <p><%= t.tracker.intro %></p>
+    <section class="page-body">
+      <div class="tracker-search">
+        <form class="tracker-form" data-track-form data-endpoint="/<%= locale %>/track/lookup"
+              data-feedback-endpoint="/<%= locale %>/track/feedback" data-csrf="<%= csrfToken %>" novalidate>
+          <label class="visually-hidden" for="reference"><%= t.tracker.inputLabel %></label>
+          <input type="text" id="reference" name="reference" maxlength="24" autocomplete="off"
+                 aria-describedby="reference-hint" placeholder="<%= t.tracker.placeholder %>" value="<%= prefill %>">
+          <button class="btn btn-primary" type="submit" data-submit data-label-submitting="<%= t.tracker.working %>">
+            <%- include('partials/icons', { name: 'search' }) %><span data-submit-label><%= t.tracker.submit %></span>
+          </button>
+        </form>
+        <p class="tracker-hint" id="reference-hint"><%= t.tracker.inputHint %></p>
+
+        <div class="saved-reports" data-saved-reports data-label="<%= t.ui.myReports %>" hidden></div>
       </div>
+
+      <!-- The live region means a screen reader is told the outcome without the
+           page moving, which is what replaced the alert() dialogs. -->
+      <div class="track-result" data-track-result role="status" aria-live="polite"
+           aria-label="<%= t.tracker.resultsLabel %>"></div>
     </section>
-
-    <section class="section section-panel">
-      <div class="container">
-        <div class="panel panel-narrow">
-
-          <form class="tracker-form" data-track-form data-endpoint="/<%= locale %>/track/lookup" novalidate>
-            <div class="field">
-              <label for="reference"><%= t.tracker.inputLabel %></label>
-              <span class="field-hint" id="reference-hint"><%= t.tracker.inputHint %></span>
-              <input type="text" id="reference" name="reference" maxlength="20" autocomplete="off"
-                     aria-describedby="reference-hint"
-                     placeholder="<%= t.tracker.placeholder %>"
-                     value="<%= prefill %>">
-            </div>
-            <button class="btn btn-primary" type="submit" data-submit
-                    data-label-submitting="<%= t.tracker.working %>">
-              <%- include('partials/icons', { name: 'search' }) %><%= t.tracker.submit %>
-            </button>
-          </form>
-
-          <!-- Results land here. The live region means a screen reader is told
-               the outcome without the page moving, which is what replaced the
-               alert() dialogs the PHP version used. -->
-          <div class="track-result" data-track-result role="status" aria-live="polite"
-               aria-label="<%= t.tracker.resultsLabel %>"></div>
-
-        </div>
-      </div>
-    </section>
-
   </main>
 
   <%- include('partials/sitefooter', { t: t, locale: locale, year: year }) %>

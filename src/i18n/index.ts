@@ -37,12 +37,40 @@ export interface ClientStrings {
   labelSector: string;
   labelDetails: string;
   labelDate: string;
-  timelineSubmitted: string;
-  timelineProgress: string;
-  timelineResolved: string;
-  timelineNotDone: string;
   noMatches: string;
   searchCleared: string;
+  statuses: Record<Status, string>;
+  labelTarget: string;
+  overdueNote: string;
+  photoAlt: string;
+  eventCreated: string;
+  eventStatuses: Record<Status, string>;
+  eventConfirmed: string;
+  eventNote: string;
+  feedbackHeading: string;
+  feedbackBody: string;
+  confirmButton: string;
+  reopenButton: string;
+  reopenNoteLabel: string;
+  reopenSubmit: string;
+  cancel: string;
+  feedbackConfirmed: string;
+  feedbackReopened: string;
+  confirmedNote: string;
+  gpsWorking: string;
+  /** {m} is replaced with the accuracy in metres. */
+  gpsCaptured: string;
+  gpsFailed: string;
+  gpsOutside: string;
+  photoWrongType: string;
+  photoProcessing: string;
+  draftRestored: string;
+  draftDiscard: string;
+  fieldRequired: string;
+  /** {n} and {total} are replaced. */
+  stepOf: string;
+  removeSaved: string;
+  shareText: string;
   categories: Record<Category, string>;
   urgencies: Record<Urgency, string>;
 }
@@ -168,6 +196,11 @@ export interface Strings {
     contactPlaceholder: string;
     submit: string;
     submitting: string;
+    photoLabel: string;
+    photoHint: string;
+    photoRemove: string;
+    gpsButton: string;
+    gpsHint: string;
   };
 
   success: {
@@ -178,6 +211,8 @@ export interface Strings {
     copy: string;
     track: string;
     another: string;
+    /** Shown when the report was linked to an open one nearby. */
+    linkedNotice: string;
   };
 
   feed: {
@@ -187,6 +222,35 @@ export interface Strings {
     empty: string;
     noMatches: string;
     defaultSector: string;
+  };
+
+  /** Short labels and app-shell copy. */
+  ui: {
+    tabHome: string;
+    tabTrack: string;
+    tabReport: string;
+    tabFeed: string;
+    tabStaff: string;
+    themeLabel: string;
+    installApp: string;
+    live: string;
+    liveHeading: string;
+    quickTrackLabel: string;
+    quickTrackButton: string;
+    filterAll: string;
+    stepIssue: string;
+    stepWhere: string;
+    stepDetails: string;
+    stepYou: string;
+    next: string;
+    back: string;
+    reviewHeading: string;
+    share: string;
+    myReports: string;
+    languageLabel: string;
+    openLabel: string;
+    howEyebrow: string;
+    feedEyebrow: string;
   };
 
   categories: Record<Category, string>;
@@ -212,6 +276,9 @@ export interface Strings {
     invalidInput: string;
     submitError: string;
     sessionExpired: string;
+    photoRejected: string;
+    photoTooLarge: string;
+    feedbackNotAllowed: string;
   };
 
   client: ClientStrings;
